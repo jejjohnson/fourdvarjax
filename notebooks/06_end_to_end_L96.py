@@ -34,8 +34,16 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 import fourdvarjax
-from fourdvarjax import Batch1D, FourDVarNet1D, L96Prior, ConvAEPrior1D, ConvLSTMGradMod1D
-from fourdvarjax._src.utils.dynamical_systems import simulate_lorenz96
+from fourdvarjax import (
+    Batch1D,
+    FourDVarNet1D,
+    L96Prior,
+    ConvLSTMGradMod1D,
+    simulate_lorenz96,
+    plot_l96_grid,
+    plot_l96_trajectories,
+    plot_reconstruction_comparison,
+)
 from fourdvarjax._src.utils.patches import trajectory_to_xr_dataset, extract_patches
 from fourdvarjax._src.utils.masks import regular_mask
 from fourdvarjax._src.utils.noise import add_gaussian_noise
@@ -44,11 +52,6 @@ from fourdvarjax._src.utils.standardize import (
     compute_scaler_params,
     apply_standardization,
     inverse_standardization,
-)
-from fourdvarjax._src.utils.viz import (
-    plot_l96_grid,
-    plot_l96_trajectories,
-    plot_reconstruction_comparison,
 )
 
 # %% [markdown]

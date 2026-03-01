@@ -263,7 +263,10 @@ def plot_l96_trajectories(
         assert fig is not None
 
     N = states.shape[1]
-    indices = np.linspace(0, N - 1, n_vars, dtype=int)
+    if n_vars <= 0:
+        raise ValueError(f"n_vars must be a positive integer, got {n_vars}.")
+    n_selected = min(n_vars, N)
+    indices = np.unique(np.linspace(0, N - 1, n_selected, dtype=int))
     for i in indices:
         ax.plot(time_coords, states[:, i], label=f"x{i}")
     ax.set_xlabel("time")

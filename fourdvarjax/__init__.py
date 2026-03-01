@@ -58,6 +58,12 @@ from fourdvarjax._src.training import (
     train_loss_fn,
     train_step,
 )
+from fourdvarjax._src.utils.dynamical_systems import simulate_lorenz96
+from fourdvarjax._src.utils.viz import (
+    plot_l96_grid,
+    plot_l96_trajectories,
+    plot_reconstruction_comparison,
+)
 
 __all__ = [
     # Types
@@ -99,4 +105,10 @@ __all__ = [
     "reconstruction_loss",
     "train_loss_fn",
     "train_step",
+    # Dynamical systems
+    "simulate_lorenz96",
+    # Visualization
+    "plot_l96_grid",
+    "plot_l96_trajectories",
+    "plot_reconstruction_comparison",
 ]

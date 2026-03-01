@@ -205,23 +205,36 @@ class ConvAEPrior1D(nn.Module):
 
     Attributes:
         latent_channels: Number of channels in the latent representation.
-        kernel_size: Convolution kernel size.
-        n_time: Number of time steps ``T`` (used to reshape).
+        kernel_size: Convolution kernel size (must be a positive odd integer).
+        n_time: Number of time steps ``T``; used as the decoder output channels
+            and validated against the runtime input shape.
     """
 
     latent_channels: int = 16
     kernel_size: int = 3
     n_time: int = 1
 
+    def __post_init__(self) -> None:
+        if self.kernel_size % 2 == 0:
+            raise ValueError(
+                f"kernel_size must be an odd integer, got {self.kernel_size}."
+            )
+        super().__post_init__()
+
     @nn.compact
     def __call__(self, x: Float[Array, "B T N"]) -> Float[Array, "B T N"]:
         t = x.shape[1]
+        if t != self.n_time:
+            raise ValueError(
+                f"Input time dimension {t} does not match n_time={self.n_time}."
+            )
         # Treat time as channels: (B, N, T)
         h = x.transpose((0, 2, 1))
 
-        # Circular padding for periodic boundaries
+        # Circular padding for periodic boundaries (pad==0 when kernel_size==1)
         pad = self.kernel_size // 2
-        h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
+        if pad > 0:
+            h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
         h = nn.Conv(
             features=self.latent_channels,
             kernel_size=(self.kernel_size,),
@@ -229,9 +242,12 @@ class ConvAEPrior1D(nn.Module):
         )(h)
         h = nn.relu(h)
 
-        # Decode: circular padding + conv back to T channels
-        h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
-        h = nn.Conv(features=t, kernel_size=(self.kernel_size,), padding="VALID")(h)
+        # Decode: circular padding + conv back to n_time channels
+        if pad > 0:
+            h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
+        h = nn.Conv(
+            features=self.n_time, kernel_size=(self.kernel_size,), padding="VALID"
+        )(h)
 
         # Back to (B, T, N)
         return h.transpose((0, 2, 1))
