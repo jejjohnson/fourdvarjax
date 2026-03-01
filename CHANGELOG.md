@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.2...v0.1.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* address review comments and CI failures (conventional commits, lint, tests) ([a65f05c](https://github.com/jejjohnson/fourdvarjax/commit/a65f05c14e93eef6cb53abc35fc268aabce9f616))
+* resolve ty type-check failure in obs_interpolation_init ([aeac8e4](https://github.com/jejjohnson/fourdvarjax/commit/aeac8e46880073b42bb927d089001201cdfde034))
+
 ## [0.1.2](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.1...v0.1.2) (2026-03-01)
 
 
