@@ -141,6 +141,32 @@ class BilinAEPrior2DMultivar(nn.Module):
 
 
 # ---------------------------------------------------------------------------
+# Identity prior
+# ---------------------------------------------------------------------------
+
+
+class IdentityPrior(nn.Module):
+    """Trivial identity prior: :math:`\\varphi(x) = x`.
+
+    Acts as a pure observation-driven baseline where the prior term
+    contributes zero cost regardless of the state, and is also useful
+    as a sanity-check building block in tests.
+    """
+
+    @nn.compact
+    def __call__(self, x: Float[Array, ...]) -> Float[Array, ...]:
+        """Return the input unchanged.
+
+        Args:
+            x: Input array of arbitrary shape.
+
+        Returns:
+            The same array ``x``.
+        """
+        return x
+
+
+# ---------------------------------------------------------------------------
 # Lorenz-63 prior
 # ---------------------------------------------------------------------------
 
