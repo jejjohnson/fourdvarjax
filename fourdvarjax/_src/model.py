@@ -31,8 +31,6 @@ class FourDVarNet1D(nn.Module):
 
     Attributes:
         state_dim: Spatial dimension ``N`` of the state.
-        obs_dim: Spatial dimension of the observations (same as ``state_dim``
-            when using a direct observation operator).
         n_time: Number of time steps ``T``.
         latent_dim: Latent dimension of the bilinear autoencoder prior.
         hidden_dim: Hidden dimension of the ConvLSTM gradient modulator.
@@ -42,7 +40,6 @@ class FourDVarNet1D(nn.Module):
     """
 
     state_dim: int
-    obs_dim: int
     n_time: int
     latent_dim: int = 32
     hidden_dim: int = 64
@@ -70,12 +67,11 @@ class FourDVarNet1D(nn.Module):
             hidden_dim=self.hidden_dim,
         )
 
-        b, t, n = batch.input.shape
+        b, _, n = batch.input.shape
         x = batch.input * batch.mask
         lstm = LSTMState1D.zeros(b, self.hidden_dim, n)
 
         for _ in range(self.n_solver_steps):
-            x_prior = prior(x)
 
             def cost_fn(x_):
                 obs_diff = batch.mask * (x_ - batch.input)
@@ -128,11 +124,12 @@ class FourDVarNet2D(nn.Module):
             hidden_dim=self.hidden_dim,
         )
 
-        b, t, h, w = batch.input.shape
+        b, _, h, w = batch.input.shape
         x = batch.input * batch.mask
         lstm = LSTMState2D.zeros(b, self.hidden_dim, h, w)
 
         for _ in range(self.n_solver_steps):
+
             def cost_fn(x_):
                 obs_diff = batch.mask * (x_ - batch.input)
                 j_obs = jnp.sum(obs_diff**2)

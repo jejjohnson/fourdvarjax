@@ -2,17 +2,14 @@
 
 import jax
 import jax.numpy as jnp
-import pytest
 
 from fourdvarjax import (
     LSTMState1D,
-    LSTMState2D,
     SolverState1D,
-    SolverState2D,
     init_solver_state_1d,
     init_solver_state_2d,
 )
-from fourdvarjax._src.solver import solver_step_1d, solver_step_2d
+from fourdvarjax._src.solver import solver_step_1d
 
 
 class TestInitSolverState1D:
@@ -38,7 +35,6 @@ class TestInitSolverState2D:
 
 class TestSolverStep1D:
     def test_step_increments(self, rng, batch_1d):
-        import flax.linen as nn
         from fourdvarjax import BilinAEPrior1D, ConvLSTMGradMod1D
 
         B, T, N = batch_1d.input.shape
@@ -46,7 +42,7 @@ class TestSolverStep1D:
         prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
         grad_mod = ConvLSTMGradMod1D(state_channels=T, hidden_dim=hidden_dim)
 
-        k1, k2, k3 = jax.random.split(rng, 3)
+        k1, k2, _ = jax.random.split(rng, 3)
         x0 = batch_1d.input * batch_1d.mask
         lstm = LSTMState1D.zeros(B, hidden_dim, N)
 
@@ -64,7 +60,6 @@ class TestSolverStep1D:
         assert new_state.step == 1
 
     def test_state_changes_after_step(self, rng, batch_1d):
-        import flax.linen as nn
         from fourdvarjax import BilinAEPrior1D, ConvLSTMGradMod1D
 
         B, T, N = batch_1d.input.shape

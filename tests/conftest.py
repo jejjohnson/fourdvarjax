@@ -16,7 +16,7 @@ def rng():
 def batch_1d():
     key = jax.random.PRNGKey(42)
     B, T, N = 2, 5, 16
-    k1, k2, k3 = jax.random.split(key, 3)
+    k1, k2 = jax.random.split(key)
     target = jax.random.normal(k1, (B, T, N))
     mask = (jax.random.uniform(k2, (B, T, N)) > 0.3).astype(jnp.float32)
     inp = target * mask

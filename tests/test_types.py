@@ -1,12 +1,8 @@
 """Tests for fourdvarjax._src._types."""
 
 import jax.numpy as jnp
-import pytest
 
 from fourdvarjax import (
-    Batch1D,
-    Batch2D,
-    Batch2DMultivar,
     LSTMState1D,
     LSTMState2D,
 )
@@ -61,9 +57,7 @@ class TestLSTMState1D:
 
 class TestLSTMState2D:
     def test_zeros(self):
-        state = LSTMState2D.zeros(
-            batch_size=2, hidden_dim=16, height=4, width=4
-        )
+        state = LSTMState2D.zeros(batch_size=2, hidden_dim=16, height=4, width=4)
         assert state.h.shape == (2, 16, 4, 4)
         assert state.c.shape == (2, 16, 4, 4)
         assert jnp.all(state.h == 0)

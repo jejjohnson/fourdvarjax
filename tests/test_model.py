@@ -1,6 +1,5 @@
 """Tests for fourdvarjax._src.model."""
 
-import jax
 import jax.numpy as jnp
 import pytest
 
@@ -12,7 +11,6 @@ class TestFourDVarNet1D:
         B, T, N = batch_1d.input.shape
         model = FourDVarNet1D(
             state_dim=N,
-            obs_dim=N,
             n_time=T,
             latent_dim=8,
             hidden_dim=16,
@@ -24,13 +22,11 @@ class TestFourDVarNet1D:
 
     @pytest.mark.slow
     def test_output_changes_with_different_masks(self, rng, batch_1d):
-        import jax.numpy as jnp
         from fourdvarjax import Batch1D
 
-        B, T, N = batch_1d.input.shape
+        _, T, N = batch_1d.input.shape
         model = FourDVarNet1D(
             state_dim=N,
-            obs_dim=N,
             n_time=T,
             latent_dim=8,
             hidden_dim=16,
@@ -38,7 +34,6 @@ class TestFourDVarNet1D:
         )
         params = model.init(rng, batch_1d)["params"]
         out1 = model.apply({"params": params}, batch_1d)
-
         # All-zero mask
         batch_no_obs = Batch1D(
             input=batch_1d.input,

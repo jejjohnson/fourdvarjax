@@ -13,7 +13,6 @@ from jaxtyping import Array, Float
 
 from ._types import LSTMState1D, LSTMState2D
 
-
 # ---------------------------------------------------------------------------
 # 1-D ConvLSTM gradient modulator
 # ---------------------------------------------------------------------------
@@ -60,7 +59,7 @@ class ConvLSTMGradMod1D(nn.Module):
             Tuple of (modulated gradient update, new LSTM state).
         """
         # Concatenate along time axis and reshape to (B, N, C) for conv
-        b, t, n = grad.shape
+        _, t, _ = grad.shape
         # Treat T as channels for 1-D spatial conv over N
         x = jnp.concatenate([grad, state], axis=1)  # (B, 2T, N)
         x = jnp.transpose(x, (0, 2, 1))  # (B, N, 2T)
@@ -135,7 +134,7 @@ class ConvLSTMGradMod2D(nn.Module):
         Returns:
             Tuple of (modulated gradient update, new LSTM state).
         """
-        b, t, h_sz, w_sz = grad.shape
+        _, t, _, _ = grad.shape
 
         # Reshape to (B, H, W, C) for Conv
         x = jnp.concatenate([grad, state], axis=1)  # (B, 2T, H, W)

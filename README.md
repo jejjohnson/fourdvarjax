@@ -44,7 +44,7 @@ import fourdvarjax
 # Create a 1D FourDVarNet model
 model = fourdvarjax.FourDVarNet1D(
     state_dim=64,
-    obs_dim=32,
+    n_time=10,
     hidden_dim=64,
     n_solver_steps=15,
 )

@@ -14,7 +14,6 @@ from jaxtyping import Array, Float
 
 from ._types import Batch1D, Batch2D, LSTMState1D, LSTMState2D
 
-
 # ---------------------------------------------------------------------------
 # Solver state containers
 # ---------------------------------------------------------------------------
@@ -67,7 +66,7 @@ def init_solver_state_1d(
     Returns:
         Zero-initialised :class:`SolverState1D`.
     """
-    b, t, n = batch.input.shape
+    b, _, n = batch.input.shape
     x0 = batch.input * batch.mask
     lstm = LSTMState1D.zeros(b, hidden_dim, n)
     return SolverState1D(x=x0, lstm=lstm, step=0)
@@ -86,7 +85,7 @@ def init_solver_state_2d(
     Returns:
         Zero-initialised :class:`SolverState2D`.
     """
-    b, t, h, w = batch.input.shape
+    b, _, h, w = batch.input.shape
     x0 = batch.input * batch.mask
     lstm = LSTMState2D.zeros(b, hidden_dim, h, w)
     return SolverState2D(x=x0, lstm=lstm, step=0)

@@ -6,16 +6,15 @@ high-level ``fit`` loop compatible with Flax ``linen`` and ``optax``.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 
+from flax.training import train_state
 import jax
 import jax.numpy as jnp
-import optax
-from flax.training import train_state
 from jaxtyping import Array, Float
+import optax
 
 from ._types import Batch1D, Batch2D
-
 
 # ---------------------------------------------------------------------------
 # Loss functions
@@ -23,8 +22,8 @@ from ._types import Batch1D, Batch2D
 
 
 def reconstruction_loss(
-    pred: Float[Array, "..."],
-    target: Float[Array, "..."],
+    pred: Float[Array, ...],
+    target: Float[Array, ...],
 ) -> Float[Array, ""]:
     """Mean-squared reconstruction loss.
 
@@ -82,9 +81,7 @@ def train_step(
         Tuple of (updated train state, scalar training loss).
     """
     rngs = {"dropout": rng}
-    loss, grads = jax.value_and_grad(train_loss_fn)(
-        state.params, model, batch, rngs
-    )
+    loss, grads = jax.value_and_grad(train_loss_fn)(state.params, model, batch, rngs)
     state = state.apply_gradients(grads=grads)
     return state, loss
 
@@ -143,8 +140,7 @@ def fit(
     # Initialise model on first batch
     rng, init_rng = jax.random.split(rng)
     first_batch = train_batches[0]
-    dummy_rngs = {"dropout": init_rng}
-    variables = model.init(dummy_rngs, first_batch)
+    variables = model.init(init_rng, first_batch)
     params = variables["params"]
 
     tx = optax.adam(lr)
@@ -169,9 +165,7 @@ def fit(
 
         mean_val = float("nan")
         if val_batches is not None:
-            epoch_val_losses = [
-                float(eval_step(state, model, b)) for b in val_batches
-            ]
+            epoch_val_losses = [float(eval_step(state, model, b)) for b in val_batches]
             mean_val = float(jnp.mean(jnp.array(epoch_val_losses)))
         val_losses.append(mean_val)
 

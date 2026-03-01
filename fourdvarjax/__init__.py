@@ -8,6 +8,7 @@ that user code imports from the top-level namespace:
 .. code-block:: python
 
     import fourdvarjax
+
     model = fourdvarjax.FourDVarNet1D(...)
 """
 

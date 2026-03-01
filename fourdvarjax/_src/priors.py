@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import flax.linen as nn
 import jax
-import jax.numpy as jnp
 from jaxtyping import Array, Float
-
 
 # ---------------------------------------------------------------------------
 # Helper layers
@@ -133,9 +131,7 @@ class BilinAEPrior2DMultivar(nn.Module):
     n_time: int = 1
 
     @nn.compact
-    def __call__(
-        self, x: Float[Array, "B T C H W"]
-    ) -> Float[Array, "B T C H W"]:
+    def __call__(self, x: Float[Array, "B T C H W"]) -> Float[Array, "B T C H W"]:
         b, t, c, h, w = x.shape
         x_flat = x.reshape(b, t * c * h * w)
         z = _BilinearBlock(self.latent_dim)(x_flat)

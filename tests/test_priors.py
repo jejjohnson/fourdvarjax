@@ -1,8 +1,6 @@
 """Tests for fourdvarjax._src.priors."""
 
-import jax
 import jax.numpy as jnp
-import pytest
 
 from fourdvarjax import (
     BilinAEPrior1D,
