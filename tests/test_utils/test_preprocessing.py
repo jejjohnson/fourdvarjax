@@ -97,3 +97,54 @@ class TestInterpolateInitialCondition:
         obs = ds["obs"].values
         # At observed positions, x_init ≈ obs
         np.testing.assert_allclose(x_init[mask], obs[mask], atol=1e-5)
+
+
+class TestObsInterpolationInit:
+    def _make_nan_obs_ds(self, n_patches=5, n_timesteps=20, n_features=3, seed=0):
+        """Create a dataset where obs has NaN at masked locations."""
+        rng = np.random.default_rng(seed)
+        states = rng.standard_normal((500, n_features)).astype(np.float32)
+        from fourdvarjax._src.utils.patches import trajectory_to_xr_dataset, extract_patches
+        import xarray as xr
+
+        time_coords = np.arange(500, dtype=float)
+        ds = trajectory_to_xr_dataset(states, time_coords)
+        ds = extract_patches(ds, n_patches=n_patches, n_timesteps=n_timesteps, seed=seed)
+        # Build obs with NaN at missing positions
+        from fourdvarjax._src.utils.masks import random_mask
+        ds = random_mask(ds, variable="state", missing_rate=0.4, seed=seed)
+        state_vals = ds["state"].values
+        mask_vals = ds["mask"].values.astype(bool)
+        obs_vals = np.where(mask_vals, state_vals, np.nan).astype(np.float32)
+        obs_da = xr.DataArray(obs_vals, dims=ds["state"].dims, coords=ds["state"].coords)
+        return ds.assign(obs=obs_da)
+
+    def test_state_init_exists(self):
+        ds = self._make_nan_obs_ds()
+        from fourdvarjax._src.utils.preprocessing import obs_interpolation_init
+        result = obs_interpolation_init(ds)
+        assert "state_init" in result
+
+    def test_state_init_shape(self):
+        ds = self._make_nan_obs_ds()
+        from fourdvarjax._src.utils.preprocessing import obs_interpolation_init
+        result = obs_interpolation_init(ds)
+        assert result["state_init"].shape == ds["obs"].shape
+
+    def test_no_nan_in_output(self):
+        ds = self._make_nan_obs_ds()
+        from fourdvarjax._src.utils.preprocessing import obs_interpolation_init
+        result = obs_interpolation_init(ds, fillna=0.0)
+        assert not np.any(np.isnan(result["state_init"].values))
+
+    def test_observed_values_preserved(self):
+        """Values at originally-observed (non-NaN) locations should be preserved."""
+        ds = self._make_nan_obs_ds()
+        from fourdvarjax._src.utils.preprocessing import obs_interpolation_init
+        result = obs_interpolation_init(ds, fillna=0.0)
+        obs = ds["obs"].values
+        state_init = result["state_init"].values
+        observed_mask = ~np.isnan(obs)
+        np.testing.assert_allclose(
+            state_init[observed_mask], obs[observed_mask], atol=1e-5
+        )

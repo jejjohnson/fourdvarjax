@@ -58,3 +58,21 @@ class TestL63Prior:
         params = model.init(rng, x)["params"]
         out = model.apply({"params": params}, x)
         assert out.shape == (4, 3)
+
+
+class TestIdentityPrior:
+    def test_output_equals_input(self, rng, batch_1d):
+        from fourdvarjax import IdentityPrior
+
+        model = IdentityPrior()
+        variables = model.init(rng, batch_1d.input)
+        out = model.apply(variables, batch_1d.input)
+        assert jnp.allclose(out, batch_1d.input)
+
+    def test_output_shape(self, rng, batch_1d):
+        from fourdvarjax import IdentityPrior
+
+        model = IdentityPrior()
+        variables = model.init(rng, batch_1d.input)
+        out = model.apply(variables, batch_1d.input)
+        assert out.shape == batch_1d.input.shape

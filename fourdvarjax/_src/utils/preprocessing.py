@@ -154,3 +154,53 @@ def interpolate_initial_condition(
         coords=obs_da.coords,
     )
     return ds.assign(x_init=x_init_da)
+
+
+def obs_interpolation_init(
+    ds: xr.Dataset,
+    variable: str = "state",
+    obs_variable: str = "obs",
+    method: str = "linear",
+    fillna: float = 0.0,
+) -> xr.Dataset:
+    """Interpolate observations along time and add as ``"state_init"``.
+
+    Uses :meth:`xr.DataArray.interpolate_na` to fill NaN gaps along the
+    time dimension, then fills any remaining NaNs (e.g. leading/trailing
+    edges) with ``fillna``.  The result is stored as a new ``"state_init"``
+    variable — a warm-start initial condition for the 4DVar solver.
+
+    Parameters
+    ----------
+    ds:
+        Dataset containing at least ``obs_variable``, which should have NaN
+        at unobserved locations.
+    variable:
+        Name of the ground-truth state variable (unused for interpolation,
+        kept for API symmetry).
+    obs_variable:
+        Name of the observation variable (NaN where unobserved).
+    method:
+        Interpolation method passed to
+        :meth:`xr.DataArray.interpolate_na` (default ``"linear"``).
+    fillna:
+        Fill value for any remaining NaN after interpolation (default
+        ``0.0``).
+
+    Returns
+    -------
+    xr.Dataset
+        Dataset with an additional ``"state_init"`` variable of the same
+        shape as ``obs_variable``.
+
+    Notes
+    -----
+    The time dimension is assumed to be the *second* dimension of
+    ``obs_variable`` (i.e. ``dims[1]`` for shape
+    ``(patch, time, feature)``), which matches the standard fourdvarjax
+    dataset layout produced by :func:`extract_patches`.
+    """
+    obs_da = ds[obs_variable]
+    time_dim = obs_da.dims[1] if obs_da.ndim >= 2 else obs_da.dims[0]
+    state_init = obs_da.interpolate_na(dim=time_dim, method=method).fillna(fillna)
+    return ds.assign(state_init=state_init.astype(np.float32))
