@@ -18,6 +18,7 @@
 # Demonstrates `FourDVarNet2D` on synthetic 2-D spatiotemporal data.
 
 # %%
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -44,14 +45,15 @@ print(f"Input shape: {batch.input.shape}")
 # %%
 model = FourDVarNet2D(
     n_time=T,
+    height=H,
+    width=W,
     latent_dim=16,
     hidden_dim=8,
     n_solver_steps=3,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
 
-init_key = jax.random.PRNGKey(1)
-params = model.init(init_key, batch)["params"]
-out = model.apply({"params": params}, batch)
+out = model(batch)
 print(f"Output shape: {out.shape}")
 
 mse = float(jnp.mean((out - target) ** 2))

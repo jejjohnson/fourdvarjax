@@ -1,6 +1,6 @@
 """Tests for fourdvarjax._src.training."""
 
-from flax.training import train_state
+from flax import nnx
 import jax
 import jax.numpy as jnp
 import optax
@@ -11,7 +11,7 @@ from fourdvarjax._src.training import eval_step, train_loss_fn, train_step
 
 
 @pytest.fixture
-def model_and_state(rng, batch_1d):
+def model_and_optimizer(rng, batch_1d):
     _, T, N = batch_1d.input.shape
     model = FourDVarNet1D(
         state_dim=N,
@@ -19,15 +19,10 @@ def model_and_state(rng, batch_1d):
         latent_dim=8,
         hidden_dim=16,
         n_solver_steps=2,
+        rngs=nnx.Rngs(rng),
     )
-    params = model.init(rng, batch_1d)["params"]
-    tx = optax.adam(1e-3)
-    state = train_state.TrainState.create(
-        apply_fn=model.apply,
-        params=params,
-        tx=tx,
-    )
-    return model, state
+    optimizer = nnx.Optimizer(model, optax.adam(1e-3), wrt=nnx.Param)
+    return model, optimizer
 
 
 class TestReconstructionLoss:
@@ -48,37 +43,38 @@ class TestReconstructionLoss:
 
 
 class TestTrainLossFn:
-    def test_returns_scalar(self, rng, batch_1d, model_and_state):
-        model, state = model_and_state
-        _, k2 = jax.random.split(rng)
-        loss = train_loss_fn(state.params, model, batch_1d, {"dropout": k2})
+    def test_returns_scalar(self, rng, batch_1d, model_and_optimizer):
+        model, _ = model_and_optimizer
+        loss = train_loss_fn(model, batch_1d)
         assert loss.ndim == 0
         assert float(loss) >= 0.0
 
 
 class TestTrainStep:
-    def test_params_change(self, rng, batch_1d, model_and_state):
-        model, state = model_and_state
-        _, k2 = jax.random.split(rng)
-        new_state, _ = train_step(state, model, batch_1d, k2)
-        # At least some parameter leaves should differ
-        flat_old = jax.tree_util.tree_leaves(state.params)
-        flat_new = jax.tree_util.tree_leaves(new_state.params)
+    def test_params_change(self, rng, batch_1d, model_and_optimizer):
+        model, optimizer = model_and_optimizer
+        params_before = jax.tree_util.tree_leaves(
+            nnx.state(model, nnx.Param)
+        )
+        train_step(model, optimizer, batch_1d)
+        params_after = jax.tree_util.tree_leaves(
+            nnx.state(model, nnx.Param)
+        )
         changed = any(
-            not jnp.allclose(a, b) for a, b in zip(flat_old, flat_new, strict=True)
+            not jnp.allclose(a, b)
+            for a, b in zip(params_before, params_after, strict=True)
         )
         assert changed
 
-    def test_loss_is_finite(self, rng, batch_1d, model_and_state):
-        model, state = model_and_state
-        _, k2 = jax.random.split(rng)
-        _, loss = train_step(state, model, batch_1d, k2)
+    def test_loss_is_finite(self, rng, batch_1d, model_and_optimizer):
+        model, optimizer = model_and_optimizer
+        loss = train_step(model, optimizer, batch_1d)
         assert jnp.isfinite(loss)
 
 
 class TestEvalStep:
-    def test_returns_scalar(self, batch_1d, model_and_state):
-        model, state = model_and_state
-        loss = eval_step(state, model, batch_1d)
+    def test_returns_scalar(self, batch_1d, model_and_optimizer):
+        model, _ = model_and_optimizer
+        loss = eval_step(model, batch_1d)
         assert loss.ndim == 0
         assert jnp.isfinite(loss)

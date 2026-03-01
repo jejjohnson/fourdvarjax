@@ -37,8 +37,6 @@ import fourdvarjax
 from fourdvarjax import (
     Batch1D,
     FourDVarNet1D,
-    L96Prior,
-    ConvLSTMGradMod1D,
     simulate_lorenz96,
     plot_l96_grid,
     plot_l96_trajectories,
@@ -118,33 +116,37 @@ plt.show()
 # ## 6. Train FourDVarNet1D with L96Prior
 
 # %%
+import flax.nnx as nnx
+
 batch_train = xr_to_batch1d(ds_train, state_var="state", obs_var="obs", mask_var="mask")
 batch_test = xr_to_batch1d(ds_test, state_var="state", obs_var="obs", mask_var="mask")
 print(f"train: input={batch_train.input.shape}, mask={batch_train.mask.shape}, target={batch_train.target.shape}")
 
 # %%
-prior = L96Prior(latent_dim=16, hidden_dim=64)
-grad_mod = ConvLSTMGradMod1D(hidden_dim=32, n_iter=5)
-model = FourDVarNet1D(prior=prior, grad_mod=grad_mod)
+_, T_dim, N_dim = batch_train.input.shape
+model = FourDVarNet1D(
+    state_dim=N_dim,
+    n_time=T_dim,
+    latent_dim=16,
+    hidden_dim=32,
+    n_solver_steps=5,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
+)
 
-key_init = jax.random.PRNGKey(1)
-variables = model.init(key_init, batch_train)
-
-trained_variables, metrics = fourdvarjax.fit(
+optimizer, train_losses, _ = fourdvarjax.fit(
     model,
-    variables,
-    batch_train,
+    [batch_train],
     n_epochs=5,
     lr=1e-3,
-    key=jax.random.PRNGKey(2),
+    verbose=True,
 )
-print("Final train loss:", metrics[-1]["loss"])
+print("Final train loss:", train_losses[-1])
 
 # %% [markdown]
 # ## 7. Evaluate and Visualize Reconstruction
 
 # %%
-recon = fourdvarjax.solve_4dvarnet_1d(model, trained_variables, batch_test)
+recon = model(batch_test)
 
 target_np = jnp.array(batch_test.target)
 input_np = jnp.array(batch_test.input)

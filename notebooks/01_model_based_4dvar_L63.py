@@ -19,12 +19,13 @@
 # attractor using `fourdvarjax`.
 
 # %%
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 import fourdvarjax
-from fourdvarjax import Batch1D, FourDVarNet1D, L63Prior
+from fourdvarjax import Batch1D, FourDVarNet1D
 
 # %% [markdown]
 # ## Generate synthetic Lorenz-63 data
@@ -48,21 +49,18 @@ print(f"Batch shapes: input={batch.input.shape}, mask={batch.mask.shape}, target
 # %%
 model = FourDVarNet1D(
     state_dim=N,
-    obs_dim=N,
     n_time=T,
     latent_dim=8,
     hidden_dim=16,
     n_solver_steps=5,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
-
-init_key = jax.random.PRNGKey(1)
-params = model.init(init_key, batch)["params"]
 
 # %% [markdown]
 # ## Run inference
 
 # %%
-out = model.apply({"params": params}, batch)
+out = model(batch)
 print(f"Output shape: {out.shape}")
 mse = jnp.mean((out - target) ** 2)
 print(f"MSE (untrained model): {mse:.4f}")

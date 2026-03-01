@@ -30,6 +30,7 @@
 # 6. Compare MSE across conditions with a bar chart
 
 # %%
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -38,9 +39,9 @@ import numpy as np
 import fourdvarjax
 from fourdvarjax import (
     Batch1D,
+    BilinAEPrior1D,
     FourDVarNet1D,
     solve_4dvarnet_1d_fixedpoint,
-    BilinAEPrior1D,
 )
 from fourdvarjax._src.utils.dynamical_systems import simulate_lorenz63
 from fourdvarjax._src.utils.patches import trajectory_to_xr_dataset, extract_patches
@@ -120,38 +121,32 @@ model_unrolled = FourDVarNet1D(
     latent_dim=8,
     hidden_dim=16,
     n_solver_steps=10,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
-key_init = jax.random.PRNGKey(1)
-variables = model_unrolled.init(key_init, batch_train)
 
-trained_variables, metrics = fourdvarjax.fit(
+optimizer, train_losses, _ = fourdvarjax.fit(
     model_unrolled,
-    variables,
-    batch_train,
+    [batch_train],
     n_epochs=5,
     lr=1e-3,
-    key=jax.random.PRNGKey(2),
+    verbose=True,
 )
-print(f"Final unrolled train loss: {metrics[-1]['loss']:.4f}")
+print(f"Final unrolled train loss: {train_losses[-1]:.4f}")
 
 # %% [markdown]
 # ## 4. Fixed-point solver (untrained prior)
 
 # %%
-prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
-prior_params = prior.init(jax.random.PRNGKey(3), batch_test.input * batch_test.mask)["params"]
+prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(jax.random.PRNGKey(3)))
 
-def prior_fn(x):
-    return prior.apply({"params": prior_params}, x)
-
-out_fp = solve_4dvarnet_1d_fixedpoint(batch_test, prior_fn, n_fp_steps=10)
+out_fp = solve_4dvarnet_1d_fixedpoint(batch_test, prior, n_fp_steps=10)
 print(f"Fixed-point output shape: {out_fp.shape}")
 
 # %% [markdown]
 # ## 5. Evaluate unrolled solver on test batch
 
 # %%
-out_unrolled = model_unrolled.apply(trained_variables, batch_test)
+out_unrolled = model_unrolled(batch_test)
 print(f"Unrolled output shape: {out_unrolled.shape}")
 
 # %% [markdown]
