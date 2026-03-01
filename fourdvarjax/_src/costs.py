@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -67,8 +68,8 @@ def obs_cost_2d(
 
 
 def prior_cost(
-    state: Float[Array, "..."],
-    prior_reconstruction: Float[Array, "..."],
+    state: Float[Array, ...],
+    prior_reconstruction: Float[Array, ...],
 ) -> Float[Array, ""]:
     """Prior cost based on learned autoencoder reconstruction.
 
@@ -96,7 +97,7 @@ def prior_cost(
 
 
 def variational_cost(
-    x: Float[Array, "..."],
+    x: Float[Array, ...],
     batch: Batch1D,
     prior_fn: Callable[..., Any],
     alpha_obs: float = 0.5,
@@ -127,12 +128,12 @@ def variational_cost(
 
 
 def variational_cost_grad(
-    x: Float[Array, "..."],
+    x: Float[Array, ...],
     batch: Batch1D,
     prior_fn: Callable[..., Any],
     alpha_obs: float = 0.5,
     alpha_prior: float = 0.5,
-) -> Float[Array, "..."]:
+) -> Float[Array, ...]:
     """Return the gradient of :func:`variational_cost` with respect to ``x``.
 
     Args:
@@ -149,7 +150,7 @@ def variational_cost_grad(
 
 
 def decomposed_loss(
-    x: Float[Array, "..."],
+    x: Float[Array, ...],
     batch: Batch1D,
     prior_fn: Callable[..., Any],
     alpha_obs: float = 0.5,

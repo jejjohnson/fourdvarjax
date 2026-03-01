@@ -91,14 +91,14 @@ class TestSolverStep1D:
 class TestFpSolverStep1D:
     def test_output_shape(self, batch_1d):
         x = batch_1d.input * batch_1d.mask
-        identity_fn = lambda x_: x_  # noqa: E731
+        identity_fn = lambda x_: x_
         x_new = fp_solver_step_1d(x, batch_1d, identity_fn)
         assert x_new.shape == x.shape
 
     def test_observed_locations_equal_input(self, batch_1d):
         """At observed locations (mask==1), result should equal the input."""
         x = jnp.zeros_like(batch_1d.input)
-        identity_fn = lambda x_: x_  # noqa: E731
+        identity_fn = lambda x_: x_
         x_new = fp_solver_step_1d(x, batch_1d, identity_fn)
         mask = batch_1d.mask.astype(bool)
         assert jnp.allclose(x_new[mask], batch_1d.input[mask])
@@ -132,3 +132,4 @@ class TestSolve4dvarnet1dFixedpoint:
 
         result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior_fn, n_fp_steps=0)
         assert result.shape == (B, T, N)
+        assert jnp.allclose(result, x0)

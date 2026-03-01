@@ -19,7 +19,7 @@
 #
 # 1. **Classical 4DVar** — minimise the variational cost
 #    $U(x) = \alpha_{obs}\|m\odot(x-y)\|^2 + \alpha_{prior}\|x-\varphi(x)\|^2$
-#    with respect to $x$ using `jax.scipy.optimize.minimize` (L-BFGS-B).
+#    with respect to $x$ using a gradient-descent optimisation loop in JAX.
 #
 # 2. **4DVarNet (learned)** — `FourDVarNet1D` trained end-to-end.
 #

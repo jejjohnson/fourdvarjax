@@ -110,11 +110,19 @@ print(f"Pre-train final loss: {pretrain_losses[-1]:.6f}")
 model_pretrained = FourDVarNet1D(
     state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10
 )
-# Initialise and then overwrite the prior sub-module weights
 vars_pretrained = model_pretrained.init(jax.random.PRNGKey(1), batch_train)
 
+# Overwrite the prior sub-module (BilinAEPrior1D_0) with the pre-trained weights.
+# FourDVarNet1D stores the prior under the key "BilinAEPrior1D_0" inside params.
+vars_pretrained = {
+    "params": {
+        **vars_pretrained["params"],
+        "BilinAEPrior1D_0": prior_vars["params"],
+    }
+}
+
 # %% [markdown]
-# ## 3. Stage 2b — Train from scratch (no pre-training)
+# ## 4. Stage 2b — Train from scratch (no pre-training)
 
 # %%
 model_scratch = FourDVarNet1D(

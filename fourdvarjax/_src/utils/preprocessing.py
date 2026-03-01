@@ -158,6 +158,7 @@ def interpolate_initial_condition(
 
 def obs_interpolation_init(
     ds: xr.Dataset,
+    *,
     variable: str = "state",
     obs_variable: str = "obs",
     method: str = "linear",
@@ -201,6 +202,11 @@ def obs_interpolation_init(
     dataset layout produced by :func:`extract_patches`.
     """
     obs_da = ds[obs_variable]
-    time_dim = obs_da.dims[1] if obs_da.ndim >= 2 else obs_da.dims[0]
+    if "time" in obs_da.dims:
+        time_dim = "time"
+    elif obs_da.ndim >= 2:
+        time_dim = obs_da.dims[1]
+    else:
+        time_dim = obs_da.dims[0]
     state_init = obs_da.interpolate_na(dim=time_dim, method=method).fillna(fillna)
     return ds.assign(state_init=state_init.astype(np.float32))

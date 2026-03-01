@@ -181,7 +181,7 @@ class IdentityPrior(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x: Float[Array, "..."]) -> Float[Array, "..."]:
+    def __call__(self, x: Float[Array, ...]) -> Float[Array, ...]:
         """Return the input unchanged.
 
         Args:
