@@ -215,7 +215,7 @@ class ConvAEPrior1D(nn.Module):
 
     @nn.compact
     def __call__(self, x: Float[Array, "B T N"]) -> Float[Array, "B T N"]:
-        b, t, n = x.shape
+        t = x.shape[1]
         # Treat time as channels: (B, N, T)
         h = x.transpose((0, 2, 1))
 

@@ -137,8 +137,8 @@ class Lorenz96(eqx.Module):
     ) -> Float[Array, N]:
         """Evaluate the vector field at state ``y`` and time ``t``."""
         # Periodic shifts using jnp.roll
-        y_km2 = jnp.roll(y, 2)   # x_{k-2}
-        y_km1 = jnp.roll(y, 1)   # x_{k-1}
+        y_km2 = jnp.roll(y, 2)  # x_{k-2}
+        y_km1 = jnp.roll(y, 1)  # x_{k-1}
         y_kp1 = jnp.roll(y, -1)  # x_{k+1}
         return (y_kp1 - y_km2) * y_km1 - y + self.F
 

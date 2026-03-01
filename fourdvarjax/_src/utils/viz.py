@@ -218,7 +218,12 @@ def plot_l96_grid(
         states.T,
         aspect="auto",
         origin="lower",
-        extent=(float(time_coords[0]), float(time_coords[-1]), 0.0, float(states.shape[1])),
+        extent=(
+            float(time_coords[0]),
+            float(time_coords[-1]),
+            0.0,
+            float(states.shape[1]),
+        ),
     )
     ax.set_xlabel("time")
     ax.set_ylabel("variable index")
