@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.4](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.3...v0.1.4) (2026-03-01)
+
+
+### Features
+
+* port l96 functionality ([bb259b7](https://github.com/jejjohnson/fourdvarjax/commit/bb259b792d8e1fc6ea3c740d5f492ff5813c4537))
+
+
+### Bug Fixes
+
+* add IdentityPrior class to priors.py lost during merge with main ([6ad893f](https://github.com/jejjohnson/fourdvarjax/commit/6ad893ff811bfe5edc62b124070ad715ce5407b9))
+* use type: ignore comments for N annotation in Lorenz96.__call__ to fix ty check ([d928e8f](https://github.com/jejjohnson/fourdvarjax/commit/d928e8fb033870ccb830ede9685d25d43bb30c2c))
+
 ## [0.1.3](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.2...v0.1.3) (2026-03-01)
 
 
