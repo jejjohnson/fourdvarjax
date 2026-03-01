@@ -62,7 +62,7 @@ class TestFourDVarNet2D:
         assert out.shape == (B, T, H, W)
 
     def test_implicit_grad_mode_raises(self, rng, batch_2d):
-        B, T, H, W = batch_2d.input.shape
+        _B, T, H, W = batch_2d.input.shape
         model = FourDVarNet2D(
             n_time=T,
             height=H,
@@ -94,7 +94,7 @@ class TestFourDVarNet1DGradMode:
         assert out.shape == (B, T, N)
 
     def test_invalid_grad_mode_raises(self, rng, batch_1d):
-        B, T, N = batch_1d.input.shape
+        _B, T, N = batch_1d.input.shape
         model = FourDVarNet1D(
             state_dim=N,
             n_time=T,
@@ -110,7 +110,7 @@ class TestFourDVarNet1DGradMode:
     def test_one_step_gradients_are_finite(self, rng, batch_1d):
         import optax
 
-        B, T, N = batch_1d.input.shape
+        _B, T, N = batch_1d.input.shape
         model = FourDVarNet1D(
             state_dim=N,
             n_time=T,

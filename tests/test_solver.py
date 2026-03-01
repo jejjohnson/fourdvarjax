@@ -43,9 +43,7 @@ class TestSolverStep1D:
         B, T, N = batch_1d.input.shape
         hidden_dim = 16
         k1, k2 = jax.random.split(rng)
-        prior = BilinAEPrior1D(
-            state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1)
-        )
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1))
         grad_mod = ConvLSTMGradMod1D(
             state_channels=T, hidden_dim=hidden_dim, rngs=nnx.Rngs(k2)
         )
@@ -63,9 +61,7 @@ class TestSolverStep1D:
         B, T, N = batch_1d.input.shape
         hidden_dim = 16
         k1, k2 = jax.random.split(rng)
-        prior = BilinAEPrior1D(
-            state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1)
-        )
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1))
         grad_mod = ConvLSTMGradMod1D(
             state_channels=T, hidden_dim=hidden_dim, rngs=nnx.Rngs(k2)
         )
@@ -136,7 +132,7 @@ class TestOneStepSolve4dvarnet1D:
         from fourdvarjax import BilinAEPrior1D, ConvLSTMGradMod1D
         from fourdvarjax._src.solver import one_step_solve_4dvarnet_1d
 
-        B, T, N = batch_1d.input.shape
+        _B, T, N = batch_1d.input.shape
         k1, k2 = jax.random.split(rng)
         prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T, rngs=nnx.Rngs(k1))
         grad_mod = ConvLSTMGradMod1D(state_channels=T, hidden_dim=16, rngs=nnx.Rngs(k2))
@@ -152,7 +148,7 @@ class TestOneStepSolve4dvarnet1D:
         from fourdvarjax import BilinAEPrior1D, ConvLSTMGradMod1D
         from fourdvarjax._src.solver import one_step_solve_4dvarnet_1d
 
-        B, T, N = batch_1d.input.shape
+        _B, T, N = batch_1d.input.shape
         k1, k2 = jax.random.split(rng)
         prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T, rngs=nnx.Rngs(k1))
         grad_mod = ConvLSTMGradMod1D(state_channels=T, hidden_dim=16, rngs=nnx.Rngs(k2))
@@ -173,7 +169,12 @@ class TestOneStepSolve4dvarnet1D:
 
     def test_single_step_equals_solver_step(self, rng, batch_1d):
         """With n_steps=1, one-step solve should equal a single solver_step."""
-        from fourdvarjax import BilinAEPrior1D, ConvLSTMGradMod1D, LSTMState1D, SolverState1D
+        from fourdvarjax import (
+            BilinAEPrior1D,
+            ConvLSTMGradMod1D,
+            LSTMState1D,
+            SolverState1D,
+        )
         from fourdvarjax._src.solver import one_step_solve_4dvarnet_1d, solver_step_1d
 
         B, T, N = batch_1d.input.shape

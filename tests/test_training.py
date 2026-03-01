@@ -53,13 +53,9 @@ class TestTrainLossFn:
 class TestTrainStep:
     def test_params_change(self, rng, batch_1d, model_and_optimizer):
         model, optimizer = model_and_optimizer
-        params_before = jax.tree_util.tree_leaves(
-            nnx.state(model, nnx.Param)
-        )
+        params_before = jax.tree_util.tree_leaves(nnx.state(model, nnx.Param))
         train_step(model, optimizer, batch_1d)
-        params_after = jax.tree_util.tree_leaves(
-            nnx.state(model, nnx.Param)
-        )
+        params_after = jax.tree_util.tree_leaves(nnx.state(model, nnx.Param))
         changed = any(
             not jnp.allclose(a, b)
             for a, b in zip(params_before, params_after, strict=True)
