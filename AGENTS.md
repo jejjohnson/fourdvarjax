@@ -1,65 +1,81 @@
-# AGENTS.md
+# Copilot Agent Guidelines for fourdvarjax
 
-This file contains instructions for all Copilot agents working on this repository.
+This document defines the workflow rules that every Copilot coding-agent session
+**must** follow when contributing to this repository.
 
-## Code Quality Before Every Commit
+---
 
-Before making any commit, always ensure the following checks pass:
+## 1. Quality gates — run before every commit
 
-1. **Tests** — all tests must pass:
-   ```bash
-   uv run pytest tests -v
-   ```
+Before calling `report_progress` (which commits and pushes), always verify that
+all four quality gates pass locally.  Fix any failures before committing.
 
-2. **Type checks** — run `ty` against the source:
-   ```bash
-   uv run ty check fourdvarjax
-   ```
+```bash
+# Formatting
+ruff format fourdvarjax/
 
-3. **Lint** — ruff lint must report no errors:
-   ```bash
-   uv run ruff check .
-   ```
+# Linting
+ruff check fourdvarjax/
 
-4. **Format** — ruff format must produce no diffs:
-   ```bash
-   uv run ruff format --check .
-   ```
+# Type checking
+ty check fourdvarjax/
 
-If any check fails, fix the issue before committing.
-
-## Conventional Commits
-
-All PR titles and commit messages **must** follow the
-[Conventional Commits](https://www.conventionalcommits.org/) specification.
-
-The PR title and every commit message must start with one of these types:
-
-- `feat:` — a new feature
-- `fix:` — a bug fix
-- `docs:` — documentation-only changes
-- `style:` — formatting, missing semi-colons, etc. (no production code change)
-- `refactor:` — code refactoring
-- `perf:` — performance improvements
-- `test:` — adding or updating tests
-- `build:` — build-system or dependency changes
-- `ci:` — CI/CD configuration changes
-- `chore:` — maintenance tasks, updating lockfiles, etc.
-- `revert:` — reverts a previous commit
-
-Examples:
-```
-feat: add fixed-point solver and variational cost utilities
-fix: correct time dimension selection in obs_interpolation_init
-docs: update README with new API examples
-test: add tests for IdentityPrior and decomposed_loss
+# Tests
+python -m pytest tests/ -x -q
 ```
 
-The subject (text after the `:`) must start with a **lowercase letter**.
+Alternatively, use the Makefile shortcuts:
 
-## PR Title and Description
+```bash
+make uv-format   # ruff format + ruff check --fix
+make uv-lint     # ruff check + ty check
+make uv-test     # pytest
+```
 
-- The PR title must follow Conventional Commits (see above).
-- The PR description should **never be overwritten** from one session to the
-  next.  Only **append** new information incrementally at the bottom of the
-  description when additional changes are made.
+All four must be **clean (exit 0)** before any commit is pushed.
+
+---
+
+## 2. Conventional Commits
+
+Every **PR title** and every **commit message** must follow the
+[Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>(<optional scope>): <subject>
+```
+
+- `type` must be one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+  `test`, `build`, `ci`, `chore`, `revert`
+- `subject` must start with a **lowercase letter**
+- No period at the end of the subject
+
+**Valid examples:**
+
+```
+feat: add simulate_lorenz96 to dynamical_systems
+fix: correct unused-variable lint error in priors
+docs: add AGENTS.md with workflow guidelines
+test: add tests for L96Prior forward pass
+chore: auto-format dynamical_systems.py with ruff
+```
+
+**Invalid examples (do not use):**
+
+```
+Add Lorenz-96 support                  # missing type prefix
+Feat: Add new feature                  # type must be lowercase; subject capitalised
+feat: Add new feature.                 # subject must start lowercase; trailing period
+```
+
+---
+
+## 3. PR title and description stability
+
+- The **PR title** must be set once (using conventional-commit format) and
+  **never changed** in subsequent sessions.
+- The **PR description** is a living document.  Each session may only
+  **append** new information (e.g. a new checklist section or bullet points).
+  Do **not** rewrite or delete existing content.
+- Use `report_progress` to incrementally update the description checklist;
+  keep the overall structure consistent across updates.

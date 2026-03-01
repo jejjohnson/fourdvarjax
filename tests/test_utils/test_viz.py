@@ -5,6 +5,8 @@ import pytest
 
 from fourdvarjax._src.utils.viz import (
     plot_3d_attractor,
+    plot_l96_grid,
+    plot_l96_trajectories,
     plot_reconstruction_comparison,
     plot_state_grid,
     plot_trajectories,
@@ -84,3 +86,31 @@ class TestPlotReconstructionComparison:
         fig, axes = plot_reconstruction_comparison(target, masked, recon, sample_idx=0)
         assert isinstance(fig, matplotlib.figure.Figure)
         assert len(axes) == 3
+
+
+class TestPlotL96Grid:
+    def test_returns_figure_and_axes(self):
+        import matplotlib.figure
+
+        states = _dummy_states(T=50, N=40)
+        time = _dummy_time(T=50)
+        fig, _ax = plot_l96_grid(states, time)
+        assert isinstance(fig, matplotlib.figure.Figure)
+
+
+class TestPlotL96Trajectories:
+    def test_returns_figure_and_axes(self):
+        import matplotlib.figure
+
+        states = _dummy_states(T=50, N=40)
+        time = _dummy_time(T=50)
+        fig, _ax = plot_l96_trajectories(states, time)
+        assert isinstance(fig, matplotlib.figure.Figure)
+
+    def test_custom_n_vars(self):
+        import matplotlib.figure
+
+        states = _dummy_states(T=50, N=40)
+        time = _dummy_time(T=50)
+        fig, _ax = plot_l96_trajectories(states, time, n_vars=3)
+        assert isinstance(fig, matplotlib.figure.Figure)

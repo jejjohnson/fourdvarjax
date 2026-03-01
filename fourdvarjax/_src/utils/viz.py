@@ -183,3 +183,93 @@ def plot_reconstruction_comparison(
         ax.set_ylabel("feature")
     fig.tight_layout()
     return fig, axes
+
+
+def plot_l96_grid(
+    states: np.ndarray,
+    time_coords: np.ndarray,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes]:
+    """Hovmöller-style image of Lorenz-96 states over time.
+
+    Parameters
+    ----------
+    states:
+        State array of shape ``(T, N)``.
+    time_coords:
+        Time coordinate array of shape ``(T,)``.
+    ax:
+        Optional existing ``Axes`` to draw on.
+
+    Returns
+    -------
+    fig, ax : Figure, Axes
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.get_figure()
+        assert fig is not None
+
+    ax.imshow(
+        states.T,
+        aspect="auto",
+        origin="lower",
+        extent=(
+            float(time_coords[0]),
+            float(time_coords[-1]),
+            0.0,
+            float(states.shape[1]),
+        ),
+    )
+    ax.set_xlabel("time")
+    ax.set_ylabel("variable index")
+    return fig, ax  # type: ignore[return-value]
+
+
+def plot_l96_trajectories(
+    states: np.ndarray,
+    time_coords: np.ndarray,
+    *,
+    n_vars: int = 5,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes]:
+    """Line plot of selected Lorenz-96 variables over time.
+
+    Parameters
+    ----------
+    states:
+        State array of shape ``(T, N)``.
+    time_coords:
+        Time coordinate array of shape ``(T,)``.
+    n_vars:
+        Number of evenly-spaced variables to plot.
+    ax:
+        Optional existing ``Axes`` to draw on.
+
+    Returns
+    -------
+    fig, ax : Figure, Axes
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.get_figure()
+        assert fig is not None
+
+    N = states.shape[1]
+    if n_vars <= 0:
+        raise ValueError(f"n_vars must be a positive integer, got {n_vars}.")
+    n_selected = min(n_vars, N)
+    indices = np.unique(np.linspace(0, N - 1, n_selected, dtype=int))
+    for i in indices:
+        ax.plot(time_coords, states[:, i], label=f"x{i}")
+    ax.set_xlabel("time")
+    ax.set_ylabel("state")
+    ax.legend()
+    return fig, ax  # type: ignore[return-value]
