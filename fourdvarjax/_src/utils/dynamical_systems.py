@@ -132,9 +132,9 @@ class Lorenz96(eqx.Module):
     def __call__(
         self,
         t: float,
-        y: Float[Array, N],
+        y: Float[Array, N],  # type: ignore[unresolved-reference]
         args: None,
-    ) -> Float[Array, N]:
+    ) -> Float[Array, N]:  # type: ignore[unresolved-reference]
         """Evaluate the vector field at state ``y`` and time ``t``."""
         # Periodic shifts using jnp.roll
         y_km2 = jnp.roll(y, 2)  # x_{k-2}
