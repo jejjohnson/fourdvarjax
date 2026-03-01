@@ -112,6 +112,7 @@ def solver_step_1d(
     prior_fn: Any,
     grad_mod_fn: Any,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> SolverState1D:
     """Perform a single 1-D solver iteration.
 
@@ -124,6 +125,7 @@ def solver_step_1d(
         prior_fn: Callable ``x -> x_prior`` (prior autoencoder forward pass).
         grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Updated :class:`SolverState1D`.
@@ -134,7 +136,7 @@ def solver_step_1d(
         x_prior = prior_fn(x_)
         obs_diff = batch.mask * (x_ - batch.input)
         j_obs = jnp.sum(obs_diff**2)
-        j_prior = jnp.sum((x_ - x_prior) ** 2)
+        j_prior = prior_weight * jnp.sum((x_ - x_prior) ** 2)
         return j_obs + j_prior
 
     grad = jax.grad(cost_fn)(x)
@@ -150,6 +152,7 @@ def solver_step_2d(
     prior_fn: Any,
     grad_mod_fn: Any,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> SolverState2D:
     """Perform a single 2-D solver iteration.
 
@@ -159,6 +162,7 @@ def solver_step_2d(
         prior_fn: Callable ``x -> x_prior``.
         grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Updated :class:`SolverState2D`.
@@ -169,7 +173,7 @@ def solver_step_2d(
         x_prior = prior_fn(x_)
         obs_diff = batch.mask * (x_ - batch.input)
         j_obs = jnp.sum(obs_diff**2)
-        j_prior = jnp.sum((x_ - x_prior) ** 2)
+        j_prior = prior_weight * jnp.sum((x_ - x_prior) ** 2)
         return j_obs + j_prior
 
     grad = jax.grad(cost_fn)(x)
@@ -311,6 +315,7 @@ def one_step_solve_4dvarnet_1d(
     n_steps: int,
     hidden_dim: int,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> Float[Array, "B T N"]:
     """Solve 4DVarNet-1D using one-step differentiation (Bolte et al., 2023).
 
@@ -331,6 +336,7 @@ def one_step_solve_4dvarnet_1d(
             then 1 differentiable step).
         hidden_dim: Hidden dimension of the ConvLSTM gradient modulator.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Final state estimate of shape ``(B, T, N)``.
@@ -339,7 +345,7 @@ def one_step_solve_4dvarnet_1d(
     state = init_solver_state_1d(batch, hidden_dim)
     warmup_steps = max(n_steps - 1, 0)
     for _ in range(warmup_steps):
-        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha)
+        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
 
     # detach the iterate so earlier steps don't contribute to the gradient
     state = SolverState1D(
@@ -350,7 +356,7 @@ def one_step_solve_4dvarnet_1d(
 
     # --- one differentiable step ---
     if n_steps >= 1:
-        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha)
+        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
 
     return state.x
 
@@ -362,6 +368,7 @@ def one_step_solve_4dvarnet_2d(
     n_steps: int,
     hidden_dim: int,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> Float[Array, "B T H W"]:
     """Solve 4DVarNet-2D using one-step differentiation (Bolte et al., 2023).
 
@@ -382,6 +389,7 @@ def one_step_solve_4dvarnet_2d(
             then 1 differentiable step).
         hidden_dim: Hidden dimension of the ConvLSTM gradient modulator.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Final state estimate of shape ``(B, T, H, W)``.
@@ -390,7 +398,7 @@ def one_step_solve_4dvarnet_2d(
     state = init_solver_state_2d(batch, hidden_dim)
     warmup_steps = max(n_steps - 1, 0)
     for _ in range(warmup_steps):
-        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha)
+        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
 
     # detach the iterate so earlier steps don't contribute to the gradient
     state = SolverState2D(
@@ -401,6 +409,6 @@ def one_step_solve_4dvarnet_2d(
 
     # --- one differentiable step ---
     if n_steps >= 1:
-        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha)
+        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
 
     return state.x

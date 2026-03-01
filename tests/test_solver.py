@@ -168,6 +168,8 @@ class TestOneStepSolve4dvarnet1D:
         # at least some parameter gradients should be non-zero
         prior_leaves = jax.tree_util.tree_leaves(nnx.state(prior_grads))
         assert any(jnp.any(g != 0) for g in prior_leaves)
+        grad_mod_leaves = jax.tree_util.tree_leaves(nnx.state(grad_mod_grads))
+        assert any(jnp.any(g != 0) for g in grad_mod_leaves)
 
     def test_single_step_equals_solver_step(self, rng, batch_1d):
         """With n_steps=1, one-step solve should equal a single solver_step."""

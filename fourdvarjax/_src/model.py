@@ -38,8 +38,12 @@ class FourDVarNet1D(nnx.Module):
         n_solver_steps: Number of solver iterations to unroll.
         alpha: Gradient step-size.
         prior_weight: Weight :math:`\\lambda` for the prior cost term.
-        grad_mode: Differentiation strategy (``"unrolled"``, ``"one_step"``,
-            or ``"implicit"``).
+        grad_mode: Differentiation and solver strategy (``"unrolled"``,
+            ``"one_step"``, or ``"implicit"``).  In ``"implicit"`` mode the
+            forward pass uses a fixed-point projection based only on the
+            prior; the ConvLSTM gradient modulator, ``alpha``, and
+            ``prior_weight`` are not used in the solver, and only the
+            implicit fixed point is differentiated through.
     """
 
     def __init__(
@@ -118,6 +122,7 @@ class FourDVarNet1D(nnx.Module):
             n_steps=self.n_solver_steps,
             hidden_dim=self.grad_mod.hidden_dim,
             alpha=self.alpha,
+            prior_weight=self.prior_weight,
         )
 
     def _call_implicit(self, batch: Batch1D) -> Float[Array, "B T N"]:
@@ -144,8 +149,13 @@ class FourDVarNet2D(nnx.Module):
         n_solver_steps: Number of solver iterations to unroll.
         alpha: Gradient step-size.
         prior_weight: Weight for the prior cost term.
-        grad_mode: Differentiation strategy (``"unrolled"``, ``"one_step"``,
-            or ``"implicit"``).
+        grad_mode: Differentiation and solver strategy (``"unrolled"``,
+            ``"one_step"``, or ``"implicit"``).  In ``"implicit"`` mode the
+            forward pass uses a fixed-point projection based only on the
+            prior; the ConvLSTM gradient modulator, ``alpha``, and
+            ``prior_weight`` are not used in the solver, and only the
+            implicit fixed point is differentiated through.  Note that
+            ``"implicit"`` is not yet implemented for 2-D models.
     """
 
     def __init__(
@@ -226,6 +236,7 @@ class FourDVarNet2D(nnx.Module):
             n_steps=self.n_solver_steps,
             hidden_dim=self.grad_mod.hidden_dim,
             alpha=self.alpha,
+            prior_weight=self.prior_weight,
         )
 
     def _call_implicit(self, batch: Batch2D) -> Float[Array, "B T H W"]:
