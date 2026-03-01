@@ -215,9 +215,9 @@ class ConvAEPrior1D(nn.Module):
     n_time: int = 1
 
     def __post_init__(self) -> None:
-        if self.kernel_size % 2 == 0:
+        if self.kernel_size <= 0 or self.kernel_size % 2 == 0:
             raise ValueError(
-                f"kernel_size must be an odd integer, got {self.kernel_size}."
+                f"kernel_size must be a positive odd integer, got {self.kernel_size}."
             )
         super().__post_init__()
 
