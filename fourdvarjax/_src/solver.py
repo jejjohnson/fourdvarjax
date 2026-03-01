@@ -226,3 +226,64 @@ def solve_4dvarnet_2d(
     for _ in range(n_steps):
         state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha)
     return state.x
+
+
+# ---------------------------------------------------------------------------
+# Fixed-point solver
+# ---------------------------------------------------------------------------
+
+
+def fp_solver_step_1d(
+    x: Float[Array, "B T N"],
+    batch: Batch1D,
+    prior_fn: Any,
+) -> Float[Array, "B T N"]:
+    """Perform a single 1-D fixed-point projection step.
+
+    Applies the prior projection then re-inserts observations at observed
+    locations:
+
+    .. math::
+
+        x \\leftarrow \\varphi(x), \\quad
+        x \\leftarrow m \\odot y + (1 - m) \\odot x
+
+    Args:
+        x: Current state estimate of shape ``(B, T, N)``.
+        batch: Observed data batch containing ``input`` (observations ``y``)
+            and ``mask`` (``m``).
+        prior_fn: Callable ``x -> x_prior`` (prior autoencoder forward pass).
+
+    Returns:
+        Updated state estimate of shape ``(B, T, N)``.
+    """
+    x_phi = prior_fn(x)
+    return batch.mask * batch.input + (1 - batch.mask) * x_phi
+
+
+def solve_4dvarnet_1d_fixedpoint(
+    batch: Batch1D,
+    prior_fn: Any,
+    n_fp_steps: int,
+) -> Float[Array, "B T N"]:
+    """Run ``n_fp_steps`` fixed-point projection steps using :func:`jax.lax.scan`.
+
+    Initialises the state from the masked observations, then iterates the
+    fixed-point update :func:`fp_solver_step_1d` for ``n_fp_steps`` steps.
+
+    Args:
+        batch: Observed data batch.
+        prior_fn: Callable ``x -> x_prior``.
+        n_fp_steps: Number of fixed-point iterations.
+
+    Returns:
+        Final state estimate of shape ``(B, T, N)``.
+    """
+    x0 = batch.input * batch.mask
+
+    def scan_fn(carry: Float[Array, "B T N"], _: None) -> tuple:
+        x_new = fp_solver_step_1d(carry, batch, prior_fn)
+        return x_new, None
+
+    x_final, _ = jax.lax.scan(scan_fn, x0, None, length=n_fp_steps)
+    return x_final

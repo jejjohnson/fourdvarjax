@@ -52,3 +52,57 @@ class TestPriorCost:
         x_recon = jnp.zeros((2, 5, 16))
         cost = prior_cost(x, x_recon)
         assert cost.ndim == 0
+
+
+class TestVariationalCost:
+    def test_scalar_output(self, batch_1d):
+        from fourdvarjax import variational_cost
+
+        identity_fn = lambda x: x
+        cost = variational_cost(batch_1d.target, batch_1d, identity_fn)
+        assert cost.ndim == 0
+
+    def test_non_negative(self, batch_1d):
+        from fourdvarjax import variational_cost
+
+        identity_fn = lambda x: x
+        cost = variational_cost(batch_1d.target, batch_1d, identity_fn)
+        assert float(cost) >= 0.0
+
+    def test_differentiable(self, batch_1d):
+        import jax
+
+        from fourdvarjax import variational_cost
+
+        identity_fn = lambda x: x
+        grad = jax.grad(variational_cost)(batch_1d.target, batch_1d, identity_fn)
+        assert grad.shape == batch_1d.target.shape
+
+
+class TestVariationalCostGrad:
+    def test_output_shape(self, batch_1d):
+        from fourdvarjax import variational_cost_grad
+
+        identity_fn = lambda x: x
+        grad = variational_cost_grad(batch_1d.target, batch_1d, identity_fn)
+        assert grad.shape == batch_1d.target.shape
+
+
+class TestDecomposedLoss:
+    def test_keys(self, batch_1d):
+        from fourdvarjax import decomposed_loss
+
+        identity_fn = lambda x: x
+        result = decomposed_loss(batch_1d.target, batch_1d, identity_fn)
+        assert set(result.keys()) == {"obs", "prior", "total"}
+
+    def test_total_equals_sum(self, batch_1d):
+        import pytest
+
+        from fourdvarjax import decomposed_loss
+
+        identity_fn = lambda x: x
+        result = decomposed_loss(batch_1d.target, batch_1d, identity_fn)
+        assert float(result["total"]) == pytest.approx(
+            float(result["obs"]) + float(result["prior"])
+        )
