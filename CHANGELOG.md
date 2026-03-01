@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.6](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.5...v0.1.6) (2026-03-01)
+
+
+### Features
+
+* add one-step differentiation strategy and `grad_mode` parameter ([ec5d1c9](https://github.com/jejjohnson/fourdvarjax/commit/ec5d1c9dbd8950feb14ca7d02c9e69da1be45be6))
+* add one-step differentiation strategy with GradMode parameter ([e9fd271](https://github.com/jejjohnson/fourdvarjax/commit/e9fd271a547fe4ab04dc2fc4e126b28a0df17798))
+
+
+### Bug Fixes
+
+* correct RUF059 lint errors and reformat test files for CI ([4c8dc68](https://github.com/jejjohnson/fourdvarjax/commit/4c8dc68d807fd8a49e1e64f6395a6813cec53a44))
+* thread prior_weight through one-step solver, fix unused var, update docstrings ([9b8d834](https://github.com/jejjohnson/fourdvarjax/commit/9b8d8344b10d2d7e51d9ce7762586809f00c7624))
+
 ## [0.1.5](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.4...v0.1.5) (2026-03-01)
 
 
