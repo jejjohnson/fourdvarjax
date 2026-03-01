@@ -1,4 +1,4 @@
-name: Lint
+name: Format
 
 on:
   push:
@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  format:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,5 +30,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Run ruff lint
-        run: uv run ruff check .
+      - name: Run ruff format check
+        run: uv run ruff format --check .
