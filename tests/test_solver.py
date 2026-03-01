@@ -1,5 +1,6 @@
 """Tests for fourdvarjax._src.solver."""
 
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 
@@ -41,24 +42,19 @@ class TestSolverStep1D:
 
         B, T, N = batch_1d.input.shape
         hidden_dim = 16
-        prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
-        grad_mod = ConvLSTMGradMod1D(state_channels=T, hidden_dim=hidden_dim)
+        k1, k2 = jax.random.split(rng)
+        prior = BilinAEPrior1D(
+            state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1)
+        )
+        grad_mod = ConvLSTMGradMod1D(
+            state_channels=T, hidden_dim=hidden_dim, rngs=nnx.Rngs(k2)
+        )
 
-        k1, k2, _ = jax.random.split(rng, 3)
         x0 = batch_1d.input * batch_1d.mask
         lstm = LSTMState1D.zeros(B, hidden_dim, N)
 
-        prior_params = prior.init(k1, x0)["params"]
-        gm_params = grad_mod.init(k2, x0, x0, lstm)["params"]
-
-        def prior_fn(x):
-            return prior.apply({"params": prior_params}, x)
-
-        def grad_mod_fn(g, x, lstm_state):
-            return grad_mod.apply({"params": gm_params}, g, x, lstm_state)
-
         state = SolverState1D(x=x0, lstm=lstm, step=0)
-        new_state = solver_step_1d(state, batch_1d, prior_fn, grad_mod_fn)
+        new_state = solver_step_1d(state, batch_1d, prior, grad_mod)
         assert new_state.step == 1
 
     def test_state_changes_after_step(self, rng, batch_1d):
@@ -66,24 +62,19 @@ class TestSolverStep1D:
 
         B, T, N = batch_1d.input.shape
         hidden_dim = 16
-        prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
-        grad_mod = ConvLSTMGradMod1D(state_channels=T, hidden_dim=hidden_dim)
-
         k1, k2 = jax.random.split(rng)
+        prior = BilinAEPrior1D(
+            state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(k1)
+        )
+        grad_mod = ConvLSTMGradMod1D(
+            state_channels=T, hidden_dim=hidden_dim, rngs=nnx.Rngs(k2)
+        )
+
         x0 = batch_1d.input * batch_1d.mask
         lstm = LSTMState1D.zeros(B, hidden_dim, N)
 
-        prior_params = prior.init(k1, x0)["params"]
-        gm_params = grad_mod.init(k2, x0, x0, lstm)["params"]
-
-        def prior_fn(x):
-            return prior.apply({"params": prior_params}, x)
-
-        def grad_mod_fn(g, x, lstm_state):
-            return grad_mod.apply({"params": gm_params}, g, x, lstm_state)
-
         state = SolverState1D(x=x0, lstm=lstm, step=0)
-        new_state = solver_step_1d(state, batch_1d, prior_fn, grad_mod_fn)
+        new_state = solver_step_1d(state, batch_1d, prior, grad_mod)
         # State should differ after the step
         assert not jnp.allclose(state.x, new_state.x)
 
@@ -109,27 +100,18 @@ class TestSolve4dvarnet1dFixedpoint:
         from fourdvarjax import BilinAEPrior1D
 
         B, T, N = batch_1d.input.shape
-        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T)
-        x0 = batch_1d.input * batch_1d.mask
-        params = prior.init(rng, x0)["params"]
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T, rngs=nnx.Rngs(rng))
 
-        def prior_fn(x):
-            return prior.apply({"params": params}, x)
-
-        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior_fn, n_fp_steps=5)
+        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior, n_fp_steps=5)
         assert result.shape == (B, T, N)
 
     def test_zero_steps_returns_masked_input(self, rng, batch_1d):
         from fourdvarjax import BilinAEPrior1D
 
         B, T, N = batch_1d.input.shape
-        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T)
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T, rngs=nnx.Rngs(rng))
         x0 = batch_1d.input * batch_1d.mask
-        params = prior.init(rng, x0)["params"]
 
-        def prior_fn(x):
-            return prior.apply({"params": params}, x)
-
-        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior_fn, n_fp_steps=0)
+        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior, n_fp_steps=0)
         assert result.shape == (B, T, N)
         assert jnp.allclose(result, x0)

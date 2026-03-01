@@ -1,5 +1,6 @@
 """Tests for fourdvarjax._src.model."""
 
+import flax.nnx as nnx
 import jax.numpy as jnp
 import pytest
 
@@ -15,9 +16,9 @@ class TestFourDVarNet1D:
             latent_dim=8,
             hidden_dim=16,
             n_solver_steps=2,
+            rngs=nnx.Rngs(rng),
         )
-        params = model.init(rng, batch_1d)["params"]
-        out = model.apply({"params": params}, batch_1d)
+        out = model(batch_1d)
         assert out.shape == (B, T, N)
 
     @pytest.mark.slow
@@ -31,16 +32,16 @@ class TestFourDVarNet1D:
             latent_dim=8,
             hidden_dim=16,
             n_solver_steps=2,
+            rngs=nnx.Rngs(rng),
         )
-        params = model.init(rng, batch_1d)["params"]
-        out1 = model.apply({"params": params}, batch_1d)
+        out1 = model(batch_1d)
         # All-zero mask
         batch_no_obs = Batch1D(
             input=batch_1d.input,
             mask=jnp.zeros_like(batch_1d.mask),
             target=batch_1d.target,
         )
-        out2 = model.apply({"params": params}, batch_no_obs)
+        out2 = model(batch_no_obs)
         assert not jnp.allclose(out1, out2)
 
 
@@ -49,10 +50,12 @@ class TestFourDVarNet2D:
         B, T, H, W = batch_2d.input.shape
         model = FourDVarNet2D(
             n_time=T,
+            height=H,
+            width=W,
             latent_dim=8,
             hidden_dim=8,
             n_solver_steps=2,
+            rngs=nnx.Rngs(rng),
         )
-        params = model.init(rng, batch_2d)["params"]
-        out = model.apply({"params": params}, batch_2d)
+        out = model(batch_2d)
         assert out.shape == (B, T, H, W)
