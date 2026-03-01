@@ -20,9 +20,12 @@ from fourdvarjax._src._types import (
     LSTMState2D,
 )
 from fourdvarjax._src.costs import (
+    decomposed_loss,
     obs_cost_1d,
     obs_cost_2d,
     prior_cost,
+    variational_cost,
+    variational_cost_grad,
 )
 from fourdvarjax._src.grad_mod import (
     ConvLSTMGradMod1D,
@@ -36,15 +39,18 @@ from fourdvarjax._src.priors import (
     BilinAEPrior1D,
     BilinAEPrior2D,
     BilinAEPrior2DMultivar,
+    IdentityPrior,
     L63Prior,
     MLPAEPrior1D,
 )
 from fourdvarjax._src.solver import (
     SolverState1D,
     SolverState2D,
+    fp_solver_step_1d,
     init_solver_state_1d,
     init_solver_state_2d,
     solve_4dvarnet_1d,
+    solve_4dvarnet_1d_fixedpoint,
     solve_4dvarnet_2d,
     solver_step_1d,
     solver_step_2d,
@@ -65,13 +71,17 @@ __all__ = [
     "LSTMState1D",
     "LSTMState2D",
     # Costs
+    "decomposed_loss",
     "obs_cost_1d",
     "obs_cost_2d",
     "prior_cost",
+    "variational_cost",
+    "variational_cost_grad",
     # Priors
     "BilinAEPrior1D",
     "BilinAEPrior2D",
     "BilinAEPrior2DMultivar",
+    "IdentityPrior",
     "L63Prior",
     "MLPAEPrior1D",
     # Gradient modulators
@@ -80,9 +90,11 @@ __all__ = [
     # Solver
     "SolverState1D",
     "SolverState2D",
+    "fp_solver_step_1d",
     "init_solver_state_1d",
     "init_solver_state_2d",
     "solve_4dvarnet_1d",
+    "solve_4dvarnet_1d_fixedpoint",
     "solve_4dvarnet_2d",
     "solver_step_1d",
     "solver_step_2d",

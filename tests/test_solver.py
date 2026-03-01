@@ -6,8 +6,10 @@ import jax.numpy as jnp
 from fourdvarjax import (
     LSTMState1D,
     SolverState1D,
+    fp_solver_step_1d,
     init_solver_state_1d,
     init_solver_state_2d,
+    solve_4dvarnet_1d_fixedpoint,
 )
 from fourdvarjax._src.solver import solver_step_1d
 
@@ -84,3 +86,50 @@ class TestSolverStep1D:
         new_state = solver_step_1d(state, batch_1d, prior_fn, grad_mod_fn)
         # State should differ after the step
         assert not jnp.allclose(state.x, new_state.x)
+
+
+class TestFpSolverStep1D:
+    def test_output_shape(self, batch_1d):
+        x = batch_1d.input * batch_1d.mask
+        identity_fn = lambda x_: x_
+        x_new = fp_solver_step_1d(x, batch_1d, identity_fn)
+        assert x_new.shape == x.shape
+
+    def test_observed_locations_equal_input(self, batch_1d):
+        """At observed locations (mask==1), result should equal the input."""
+        x = jnp.zeros_like(batch_1d.input)
+        identity_fn = lambda x_: x_
+        x_new = fp_solver_step_1d(x, batch_1d, identity_fn)
+        mask = batch_1d.mask.astype(bool)
+        assert jnp.allclose(x_new[mask], batch_1d.input[mask])
+
+
+class TestSolve4dvarnet1dFixedpoint:
+    def test_output_shape(self, rng, batch_1d):
+        from fourdvarjax import BilinAEPrior1D
+
+        B, T, N = batch_1d.input.shape
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T)
+        x0 = batch_1d.input * batch_1d.mask
+        params = prior.init(rng, x0)["params"]
+
+        def prior_fn(x):
+            return prior.apply({"params": params}, x)
+
+        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior_fn, n_fp_steps=5)
+        assert result.shape == (B, T, N)
+
+    def test_zero_steps_returns_masked_input(self, rng, batch_1d):
+        from fourdvarjax import BilinAEPrior1D
+
+        B, T, N = batch_1d.input.shape
+        prior = BilinAEPrior1D(state_dim=N, latent_dim=4, n_time=T)
+        x0 = batch_1d.input * batch_1d.mask
+        params = prior.init(rng, x0)["params"]
+
+        def prior_fn(x):
+            return prior.apply({"params": params}, x)
+
+        result = solve_4dvarnet_1d_fixedpoint(batch_1d, prior_fn, n_fp_steps=0)
+        assert result.shape == (B, T, N)
+        assert jnp.allclose(result, x0)
