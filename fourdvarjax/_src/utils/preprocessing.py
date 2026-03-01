@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import jax.numpy as jnp
 import numpy as np
 import xarray as xr
@@ -208,5 +210,7 @@ def obs_interpolation_init(
         time_dim = obs_da.dims[1]
     else:
         time_dim = obs_da.dims[0]
-    state_init = obs_da.interpolate_na(dim=time_dim, method=method).fillna(fillna)
+    state_init = obs_da.interpolate_na(dim=time_dim, method=cast(Any, method)).fillna(
+        fillna
+    )
     return ds.assign(state_init=state_init.astype(np.float32))
