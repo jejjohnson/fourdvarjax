@@ -52,7 +52,7 @@ def plot_3d_attractor(
     ax.plot(states[:, i], states[:, j], states[:, k], lw=0.5)
     ax.set_xlabel(f"x{i}")
     ax.set_ylabel(f"x{j}")
-    ax.set_zlabel(f"x{k}")
+    ax.set_zlabel(f"x{k}")  # type: ignore[union-attr]
     return fig, ax  # type: ignore[return-value]
 
 
