@@ -4,7 +4,12 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from fourdvarjax._src.utils.dynamical_systems import Lorenz63, simulate_lorenz63
+from fourdvarjax._src.utils.dynamical_systems import (
+    Lorenz63,
+    Lorenz96,
+    simulate_lorenz63,
+    simulate_lorenz96,
+)
 
 
 class TestLorenz63Module:
@@ -85,3 +90,65 @@ class TestSimulateLorenz63:
         _, s_no_burn = simulate_lorenz63(key, n_steps=100, n_burn_in=0, x0=x0)
         _, s_burn = simulate_lorenz63(key, n_steps=100, n_burn_in=200, x0=x0)
         assert not jnp.allclose(s_no_burn[0], s_burn[0])
+
+
+class TestLorenz96Module:
+    def test_output_shape(self):
+        model = Lorenz96(F=8.0)
+        y = jnp.ones((40,))
+        dy = model(0.0, y, None)
+        assert dy.shape == (40,)
+
+    def test_uniform_fixed_point(self):
+        """Uniform state x_k = F is a fixed point of the L96 ODE."""
+        F = 8.0
+        N = 40
+        model = Lorenz96(F=F)
+        y = jnp.full((N,), F)
+        dy = model(0.0, y, None)
+        assert jnp.allclose(dy, jnp.zeros(N), atol=1e-5)
+
+
+class TestSimulateLorenz96:
+    def test_output_shapes(self):
+        key = jax.random.PRNGKey(0)
+        N = 40
+        n_steps = 100
+        n_burn_in = 20
+        time_coords, states = simulate_lorenz96(
+            key, N=N, n_steps=n_steps, n_burn_in=n_burn_in
+        )
+        assert states.shape == (n_steps + 1, N)
+        assert time_coords.shape == (n_steps + 1,)
+
+    def test_time_starts_at_zero(self):
+        key = jax.random.PRNGKey(1)
+        time_coords, _ = simulate_lorenz96(key, n_steps=100, n_burn_in=20)
+        assert float(time_coords[0]) == pytest.approx(0.0, abs=1e-6)
+
+    def test_deterministic(self):
+        key = jax.random.PRNGKey(42)
+        _, states1 = simulate_lorenz96(key, n_steps=100, n_burn_in=20)
+        _, states2 = simulate_lorenz96(key, n_steps=100, n_burn_in=20)
+        assert jnp.allclose(states1, states2)
+
+    def test_different_keys_give_different_results(self):
+        k1 = jax.random.PRNGKey(0)
+        k2 = jax.random.PRNGKey(1)
+        _, s1 = simulate_lorenz96(k1, n_steps=100, n_burn_in=20)
+        _, s2 = simulate_lorenz96(k2, n_steps=100, n_burn_in=20)
+        assert not jnp.allclose(s1, s2)
+
+    def test_bounded_attractor(self):
+        """L96 attractor stays bounded — no blow-up."""
+        key = jax.random.PRNGKey(7)
+        _, states = simulate_lorenz96(key, n_steps=500, n_burn_in=200)
+        assert jnp.all(jnp.abs(states) < 200)
+
+    def test_custom_n_and_f(self):
+        key = jax.random.PRNGKey(5)
+        time_coords, states = simulate_lorenz96(
+            key, N=20, F=10.0, n_steps=50, n_burn_in=10
+        )
+        assert states.shape == (51, 20)
+        assert time_coords.shape == (51,)

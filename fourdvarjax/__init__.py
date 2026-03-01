@@ -36,7 +36,9 @@ from fourdvarjax._src.priors import (
     BilinAEPrior1D,
     BilinAEPrior2D,
     BilinAEPrior2DMultivar,
+    ConvAEPrior1D,
     L63Prior,
+    L96Prior,
     MLPAEPrior1D,
 )
 from fourdvarjax._src.solver import (
@@ -72,7 +74,9 @@ __all__ = [
     "BilinAEPrior1D",
     "BilinAEPrior2D",
     "BilinAEPrior2DMultivar",
+    "ConvAEPrior1D",
     "L63Prior",
+    "L96Prior",
     "MLPAEPrior1D",
     # Gradient modulators
     "ConvLSTMGradMod1D",

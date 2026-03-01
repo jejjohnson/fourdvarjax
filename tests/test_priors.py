@@ -6,7 +6,9 @@ from fourdvarjax import (
     BilinAEPrior1D,
     BilinAEPrior2D,
     BilinAEPrior2DMultivar,
+    ConvAEPrior1D,
     L63Prior,
+    L96Prior,
     MLPAEPrior1D,
 )
 
@@ -58,3 +60,35 @@ class TestL63Prior:
         params = model.init(rng, x)["params"]
         out = model.apply({"params": params}, x)
         assert out.shape == (4, 3)
+
+
+class TestL96Prior:
+    def test_output_shape(self, rng):
+        model = L96Prior(latent_dim=16, hidden_dim=64)
+        x = jnp.ones((4, 40))
+        params = model.init(rng, x)["params"]
+        out = model.apply({"params": params}, x)
+        assert out.shape == (4, 40)
+
+    def test_custom_state_size(self, rng):
+        model = L96Prior(latent_dim=8, hidden_dim=32)
+        x = jnp.ones((2, 20))
+        params = model.init(rng, x)["params"]
+        out = model.apply({"params": params}, x)
+        assert out.shape == (2, 20)
+
+
+class TestConvAEPrior1D:
+    def test_output_shape(self, rng):
+        model = ConvAEPrior1D(latent_channels=8, kernel_size=3, n_time=5)
+        x = jnp.ones((2, 5, 40))
+        params = model.init(rng, x)["params"]
+        out = model.apply({"params": params}, x)
+        assert out.shape == (2, 5, 40)
+
+    def test_small_spatial_dim(self, rng):
+        model = ConvAEPrior1D(latent_channels=4, kernel_size=3, n_time=3)
+        x = jnp.ones((2, 3, 10))
+        params = model.init(rng, x)["params"]
+        out = model.apply({"params": params}, x)
+        assert out.shape == (2, 3, 10)

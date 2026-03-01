@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import flax.linen as nn
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 # ---------------------------------------------------------------------------
@@ -165,3 +166,72 @@ class L63Prior(nn.Module):
         z = nn.Dense(self.latent_dim)(z)
         h = nn.tanh(nn.Dense(self.hidden_dim)(z))
         return nn.Dense(n)(h)
+
+
+# ---------------------------------------------------------------------------
+# Lorenz-96 priors
+# ---------------------------------------------------------------------------
+
+
+class L96Prior(nn.Module):
+    """Learned prior for the Lorenz-96 system.
+
+    A simple MLP autoencoder designed for the N-dimensional Lorenz-96
+    attractor.  The state is treated as a flat vector of length ``N``.
+
+    Attributes:
+        latent_dim: Dimensionality of the latent code.
+        hidden_dim: Hidden layer width.
+    """
+
+    latent_dim: int = 16
+    hidden_dim: int = 64
+
+    @nn.compact
+    def __call__(self, x: Float[Array, "B N"]) -> Float[Array, "B N"]:
+        n = x.shape[-1]
+        z = nn.tanh(nn.Dense(self.hidden_dim)(x))
+        z = nn.Dense(self.latent_dim)(z)
+        h = nn.tanh(nn.Dense(self.hidden_dim)(z))
+        return nn.Dense(n)(h)
+
+
+class ConvAEPrior1D(nn.Module):
+    """Convolutional autoencoder prior for 1-D spatially-structured data.
+
+    Uses circular (periodic) padding suitable for systems with periodic
+    boundary conditions such as Lorenz-96.  Operates on inputs of shape
+    ``(B, T, N)`` where ``N`` is the spatial dimension.
+
+    Attributes:
+        latent_channels: Number of channels in the latent representation.
+        kernel_size: Convolution kernel size.
+        n_time: Number of time steps ``T`` (used to reshape).
+    """
+
+    latent_channels: int = 16
+    kernel_size: int = 3
+    n_time: int = 1
+
+    @nn.compact
+    def __call__(self, x: Float[Array, "B T N"]) -> Float[Array, "B T N"]:
+        b, t, n = x.shape
+        # Treat time as channels: (B, N, T)
+        h = x.transpose((0, 2, 1))
+
+        # Circular padding for periodic boundaries
+        pad = self.kernel_size // 2
+        h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
+        h = nn.Conv(
+            features=self.latent_channels,
+            kernel_size=(self.kernel_size,),
+            padding="VALID",
+        )(h)
+        h = nn.relu(h)
+
+        # Decode: circular padding + conv back to T channels
+        h = jnp.concatenate([h[:, -pad:, :], h, h[:, :pad, :]], axis=1)
+        h = nn.Conv(features=t, kernel_size=(self.kernel_size,), padding="VALID")(h)
+
+        # Back to (B, T, N)
+        return h.transpose((0, 2, 1))
