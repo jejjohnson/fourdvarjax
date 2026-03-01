@@ -14,6 +14,7 @@ from jaxtyping import Array, Float
 from ._types import Batch1D, Batch2D, LSTMState1D, LSTMState2D
 from .grad_mod import ConvLSTMGradMod1D, ConvLSTMGradMod2D
 from .priors import BilinAEPrior1D, BilinAEPrior2D
+from .solver import GradMode
 
 
 class FourDVarNet1D(nnx.Module):
@@ -37,6 +38,12 @@ class FourDVarNet1D(nnx.Module):
         n_solver_steps: Number of solver iterations to unroll.
         alpha: Gradient step-size.
         prior_weight: Weight :math:`\\lambda` for the prior cost term.
+        grad_mode: Differentiation and solver strategy (``"unrolled"``,
+            ``"one_step"``, or ``"implicit"``).  In ``"implicit"`` mode the
+            forward pass uses a fixed-point projection based only on the
+            prior; the ConvLSTM gradient modulator, ``alpha``, and
+            ``prior_weight`` are not used in the solver, and only the
+            implicit fixed point is differentiated through.
     """
 
     def __init__(
@@ -48,12 +55,14 @@ class FourDVarNet1D(nnx.Module):
         n_solver_steps: int = 15,
         alpha: float = 0.2,
         prior_weight: float = 1.0,
+        grad_mode: GradMode = "unrolled",
         *,
         rngs: nnx.Rngs,
     ) -> None:
         self.n_solver_steps = n_solver_steps
         self.alpha = alpha
         self.prior_weight = prior_weight
+        self.grad_mode = grad_mode
         self.prior = BilinAEPrior1D(
             state_dim=state_dim,
             latent_dim=latent_dim,
@@ -75,6 +84,16 @@ class FourDVarNet1D(nnx.Module):
         Returns:
             Reconstructed state of shape ``(B, T, N)``.
         """
+        if self.grad_mode == "unrolled":
+            return self._call_unrolled(batch)
+        elif self.grad_mode == "one_step":
+            return self._call_one_step(batch)
+        elif self.grad_mode == "implicit":
+            return self._call_implicit(batch)
+        else:
+            raise ValueError(f"Unknown grad_mode: {self.grad_mode!r}")
+
+    def _call_unrolled(self, batch: Batch1D) -> Float[Array, "B T N"]:
         b, _, n = batch.input.shape
         x = batch.input * batch.mask
         lstm = LSTMState1D.zeros(b, self.grad_mod.hidden_dim, n)
@@ -93,6 +112,30 @@ class FourDVarNet1D(nnx.Module):
 
         return x
 
+    def _call_one_step(self, batch: Batch1D) -> Float[Array, "B T N"]:
+        from .solver import one_step_solve_4dvarnet_1d
+
+        return one_step_solve_4dvarnet_1d(
+            batch,
+            self.prior,
+            self.grad_mod,
+            n_steps=self.n_solver_steps,
+            hidden_dim=self.grad_mod.hidden_dim,
+            alpha=self.alpha,
+            prior_weight=self.prior_weight,
+        )
+
+    def _call_implicit(self, batch: Batch1D) -> Float[Array, "B T N"]:
+        # Uses the fixed-point projection solver (prior only; grad_mod and
+        # alpha are not used in this mode).  A full implicit-differentiation
+        # implementation that incorporates the gradient modulator requires
+        # jaxopt or a similar fixed-point solver library.
+        from .solver import solve_4dvarnet_1d_fixedpoint
+
+        return solve_4dvarnet_1d_fixedpoint(
+            batch, self.prior, n_fp_steps=self.n_solver_steps
+        )
+
 
 class FourDVarNet2D(nnx.Module):
     """End-to-end 4DVarNet model for 2-D spatiotemporal reconstruction.
@@ -106,6 +149,13 @@ class FourDVarNet2D(nnx.Module):
         n_solver_steps: Number of solver iterations to unroll.
         alpha: Gradient step-size.
         prior_weight: Weight for the prior cost term.
+        grad_mode: Differentiation and solver strategy (``"unrolled"``,
+            ``"one_step"``, or ``"implicit"``).  In ``"implicit"`` mode the
+            forward pass uses a fixed-point projection based only on the
+            prior; the ConvLSTM gradient modulator, ``alpha``, and
+            ``prior_weight`` are not used in the solver, and only the
+            implicit fixed point is differentiated through.  Note that
+            ``"implicit"`` is not yet implemented for 2-D models.
     """
 
     def __init__(
@@ -118,12 +168,14 @@ class FourDVarNet2D(nnx.Module):
         n_solver_steps: int = 15,
         alpha: float = 0.2,
         prior_weight: float = 1.0,
+        grad_mode: GradMode = "unrolled",
         *,
         rngs: nnx.Rngs,
     ) -> None:
         self.n_solver_steps = n_solver_steps
         self.alpha = alpha
         self.prior_weight = prior_weight
+        self.grad_mode = grad_mode
         self.prior = BilinAEPrior2D(
             latent_dim=latent_dim,
             n_time=n_time,
@@ -146,6 +198,16 @@ class FourDVarNet2D(nnx.Module):
         Returns:
             Reconstructed state of shape ``(B, T, H, W)``.
         """
+        if self.grad_mode == "unrolled":
+            return self._call_unrolled(batch)
+        elif self.grad_mode == "one_step":
+            return self._call_one_step(batch)
+        elif self.grad_mode == "implicit":
+            return self._call_implicit(batch)
+        else:
+            raise ValueError(f"Unknown grad_mode: {self.grad_mode!r}")
+
+    def _call_unrolled(self, batch: Batch2D) -> Float[Array, "B T H W"]:
         b, _, h, w = batch.input.shape
         x = batch.input * batch.mask
         lstm = LSTMState2D.zeros(b, self.grad_mod.hidden_dim, h, w)
@@ -163,3 +225,24 @@ class FourDVarNet2D(nnx.Module):
             x = x - self.alpha * update
 
         return x
+
+    def _call_one_step(self, batch: Batch2D) -> Float[Array, "B T H W"]:
+        from .solver import one_step_solve_4dvarnet_2d
+
+        return one_step_solve_4dvarnet_2d(
+            batch,
+            self.prior,
+            self.grad_mod,
+            n_steps=self.n_solver_steps,
+            hidden_dim=self.grad_mod.hidden_dim,
+            alpha=self.alpha,
+            prior_weight=self.prior_weight,
+        )
+
+    def _call_implicit(self, batch: Batch2D) -> Float[Array, "B T H W"]:
+        # Note: the fixed-point projection solver uses only the prior (no
+        # gradient modulator).  A full implicit-diff implementation with a
+        # gradient-modulated solver requires jaxopt.
+        raise NotImplementedError(
+            "Implicit differentiation for FourDVarNet2D is not yet implemented."
+        )

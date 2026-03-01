@@ -6,13 +6,23 @@ the variational cost minimisation, guided by the learned gradient modulator.
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from ._types import Batch1D, Batch2D, LSTMState1D, LSTMState2D
+
+GradMode = Literal["unrolled", "implicit", "one_step"]
+"""Differentiation strategy for the 4DVarNet solver.
+
+- ``"unrolled"``: backprop through all ``K`` solver steps (O(K) memory).
+- ``"implicit"``:  fixed-point / implicit differentiation (O(1) memory,
+  requires the solver to have converged to a fixed point).
+- ``"one_step"``:  one-step differentiation (Bolte et al., NeurIPS 2023);
+  O(1) memory, only the last solver step is differentiated.
+"""
 
 # ---------------------------------------------------------------------------
 # Solver state containers
@@ -102,6 +112,7 @@ def solver_step_1d(
     prior_fn: Any,
     grad_mod_fn: Any,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> SolverState1D:
     """Perform a single 1-D solver iteration.
 
@@ -114,6 +125,7 @@ def solver_step_1d(
         prior_fn: Callable ``x -> x_prior`` (prior autoencoder forward pass).
         grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Updated :class:`SolverState1D`.
@@ -124,7 +136,7 @@ def solver_step_1d(
         x_prior = prior_fn(x_)
         obs_diff = batch.mask * (x_ - batch.input)
         j_obs = jnp.sum(obs_diff**2)
-        j_prior = jnp.sum((x_ - x_prior) ** 2)
+        j_prior = prior_weight * jnp.sum((x_ - x_prior) ** 2)
         return j_obs + j_prior
 
     grad = jax.grad(cost_fn)(x)
@@ -140,6 +152,7 @@ def solver_step_2d(
     prior_fn: Any,
     grad_mod_fn: Any,
     alpha: float = 1.0,
+    prior_weight: float = 1.0,
 ) -> SolverState2D:
     """Perform a single 2-D solver iteration.
 
@@ -149,6 +162,7 @@ def solver_step_2d(
         prior_fn: Callable ``x -> x_prior``.
         grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
         alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
 
     Returns:
         Updated :class:`SolverState2D`.
@@ -159,7 +173,7 @@ def solver_step_2d(
         x_prior = prior_fn(x_)
         obs_diff = batch.mask * (x_ - batch.input)
         j_obs = jnp.sum(obs_diff**2)
-        j_prior = jnp.sum((x_ - x_prior) ** 2)
+        j_prior = prior_weight * jnp.sum((x_ - x_prior) ** 2)
         return j_obs + j_prior
 
     grad = jax.grad(cost_fn)(x)
@@ -287,3 +301,114 @@ def solve_4dvarnet_1d_fixedpoint(
 
     x_final, _ = jax.lax.scan(scan_fn, x0, None, length=n_fp_steps)
     return x_final
+
+
+# ---------------------------------------------------------------------------
+# One-step differentiation solver
+# ---------------------------------------------------------------------------
+
+
+def one_step_solve_4dvarnet_1d(
+    batch: Batch1D,
+    prior_fn: Any,
+    grad_mod_fn: Any,
+    n_steps: int,
+    hidden_dim: int,
+    alpha: float = 1.0,
+    prior_weight: float = 1.0,
+) -> Float[Array, "B T N"]:
+    """Solve 4DVarNet-1D using one-step differentiation (Bolte et al., 2023).
+
+    Runs ``n_steps - 1`` solver iterations with ``jax.lax.stop_gradient``
+    applied to the iterate, then performs a single final step through which
+    gradients flow.  This gives O(1) memory cost (matching implicit
+    differentiation) while being as simple to implement as unrolled backprop.
+
+    Reference:
+        Bolte, Pauwels & Vaiter (NeurIPS 2023). "One-step differentiation of
+        iterative algorithms." https://arxiv.org/abs/2305.13768
+
+    Args:
+        batch: Observed data batch.
+        prior_fn: Callable ``x -> x_prior``.
+        grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
+        n_steps: Total number of solver iterations (warmup = n_steps - 1,
+            then 1 differentiable step).
+        hidden_dim: Hidden dimension of the ConvLSTM gradient modulator.
+        alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
+
+    Returns:
+        Final state estimate of shape ``(B, T, N)``.
+    """
+    # --- warmup: run n_steps-1 steps without tracking gradients ---
+    state = init_solver_state_1d(batch, hidden_dim)
+    warmup_steps = max(n_steps - 1, 0)
+    for _ in range(warmup_steps):
+        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
+
+    # detach the iterate so earlier steps don't contribute to the gradient
+    state = SolverState1D(
+        x=jax.lax.stop_gradient(state.x),
+        lstm=jax.lax.stop_gradient(state.lstm),
+        step=state.step,
+    )
+
+    # --- one differentiable step ---
+    if n_steps >= 1:
+        state = solver_step_1d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
+
+    return state.x
+
+
+def one_step_solve_4dvarnet_2d(
+    batch: Batch2D,
+    prior_fn: Any,
+    grad_mod_fn: Any,
+    n_steps: int,
+    hidden_dim: int,
+    alpha: float = 1.0,
+    prior_weight: float = 1.0,
+) -> Float[Array, "B T H W"]:
+    """Solve 4DVarNet-2D using one-step differentiation (Bolte et al., 2023).
+
+    Runs ``n_steps - 1`` solver iterations with ``jax.lax.stop_gradient``
+    applied to the iterate, then performs a single final step through which
+    gradients flow.  This gives O(1) memory cost (matching implicit
+    differentiation) while being as simple to implement as unrolled backprop.
+
+    Reference:
+        Bolte, Pauwels & Vaiter (NeurIPS 2023). "One-step differentiation of
+        iterative algorithms." https://arxiv.org/abs/2305.13768
+
+    Args:
+        batch: Observed data batch.
+        prior_fn: Callable ``x -> x_prior``.
+        grad_mod_fn: Callable ``(grad, x, lstm) -> (update, new_lstm)``.
+        n_steps: Total number of solver iterations (warmup = n_steps - 1,
+            then 1 differentiable step).
+        hidden_dim: Hidden dimension of the ConvLSTM gradient modulator.
+        alpha: Step-size scaling factor.
+        prior_weight: Weighting factor :math:`\\lambda` for the prior cost term.
+
+    Returns:
+        Final state estimate of shape ``(B, T, H, W)``.
+    """
+    # --- warmup: run n_steps-1 steps without tracking gradients ---
+    state = init_solver_state_2d(batch, hidden_dim)
+    warmup_steps = max(n_steps - 1, 0)
+    for _ in range(warmup_steps):
+        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
+
+    # detach the iterate so earlier steps don't contribute to the gradient
+    state = SolverState2D(
+        x=jax.lax.stop_gradient(state.x),
+        lstm=jax.lax.stop_gradient(state.lstm),
+        step=state.step,
+    )
+
+    # --- one differentiable step ---
+    if n_steps >= 1:
+        state = solver_step_2d(state, batch, prior_fn, grad_mod_fn, alpha, prior_weight)
+
+    return state.x

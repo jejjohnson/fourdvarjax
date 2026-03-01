@@ -72,9 +72,7 @@ class TestL63Prior:
 
 class TestL96Prior:
     def test_output_shape(self, rng):
-        model = L96Prior(
-            latent_dim=16, hidden_dim=64, state_dim=40, rngs=nnx.Rngs(rng)
-        )
+        model = L96Prior(latent_dim=16, hidden_dim=64, state_dim=40, rngs=nnx.Rngs(rng))
         x = jnp.ones((4, 40))
         out = model(x)
         assert out.shape == (4, 40)
