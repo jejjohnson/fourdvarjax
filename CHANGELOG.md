@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.4...v0.1.5) (2026-03-01)
+
+
+### Bug Fixes
+
+* remove unused jax import in test_priors and update notebooks to NNX API ([736a97a](https://github.com/jejjohnson/fourdvarjax/commit/736a97afabe5ad8924b70d8b1ed515b34360f749))
+
 ## [0.1.4](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.3...v0.1.4) (2026-03-01)
 
 
