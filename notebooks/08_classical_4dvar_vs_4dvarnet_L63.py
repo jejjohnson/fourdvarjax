@@ -77,14 +77,9 @@ print(f"Test batch shape: {batch_test.input.shape}")
 # convergence trajectory.
 
 # %%
-prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
-prior_params = prior.init(jax.random.PRNGKey(5), batch_test.input * batch_test.mask)[
-    "params"
-]
+import flax.nnx as nnx
 
-
-def prior_fn(x):
-    return prior.apply({"params": prior_params}, x)
+prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(jax.random.PRNGKey(5)))
 
 
 # Initialise x from masked observations
@@ -101,7 +96,7 @@ grad_fn = jax.jit(jax.value_and_grad(variational_cost))
 
 for step in range(n_classical_steps):
     loss_val, grad = grad_fn(
-        x_classical, batch_test, prior_fn, alpha_obs=0.5, alpha_prior=0.5
+        x_classical, batch_test, prior, alpha_obs=0.5, alpha_prior=0.5
     )
     x_classical = x_classical - lr_classical * grad
     classical_losses.append(float(loss_val))
@@ -110,7 +105,7 @@ mse_classical = float(jnp.mean((x_classical - batch_test.target) ** 2))
 print(f"Classical 4DVar MSE after {n_classical_steps} steps: {mse_classical:.4f}")
 
 # Decomposed loss at convergence
-dl = decomposed_loss(x_classical, batch_test, prior_fn)
+dl = decomposed_loss(x_classical, batch_test, prior)
 print(
     f"  obs={float(dl['obs']):.4f}, prior={float(dl['prior']):.4f}, total={float(dl['total']):.4f}"
 )
@@ -120,22 +115,20 @@ print(
 
 # %%
 model = FourDVarNet1D(
-    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10
+    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
-vars_init = model.init(jax.random.PRNGKey(1), batch_train)
 
-trained_vars, metrics = fourdvarjax.fit(
+_, train_losses, _ = fourdvarjax.fit(
     model,
-    vars_init,
-    batch_train,
+    [batch_train],
     n_epochs=10,
     lr=1e-3,
-    key=jax.random.PRNGKey(2),
+    verbose=False,
 )
-train_losses = [m["loss"] for m in metrics]
 print(f"4DVarNet final train loss: {train_losses[-1]:.4f}")
 
-out_4dvarnet = model.apply(trained_vars, batch_test)
+out_4dvarnet = model(batch_test)
 mse_4dvarnet = float(jnp.mean((out_4dvarnet - batch_test.target) ** 2))
 print(f"4DVarNet test MSE: {mse_4dvarnet:.4f}")
 

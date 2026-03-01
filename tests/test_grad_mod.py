@@ -1,6 +1,6 @@
 """Tests for fourdvarjax._src.grad_mod."""
 
-import flax.nnx as nnx
+from flax import nnx
 import jax.numpy as jnp
 
 from fourdvarjax import ConvLSTMGradMod1D, ConvLSTMGradMod2D, LSTMState1D, LSTMState2D

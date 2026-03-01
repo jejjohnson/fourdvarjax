@@ -1,6 +1,6 @@
 """Tests for fourdvarjax._src.training."""
 
-import flax.nnx as nnx
+from flax import nnx
 import jax
 import jax.numpy as jnp
 import optax

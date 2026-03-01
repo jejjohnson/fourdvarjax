@@ -75,30 +75,25 @@ print(f"Train: {batch_train.input.shape}, Test: {batch_test.input.shape}")
 # Minimise $\|x - \varphi(x)\|^2$ on clean (unmasked) state trajectories.
 
 # %%
+import flax.nnx as nnx
+
 B, T, N = batch_train.input.shape
-prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T)
+prior = BilinAEPrior1D(state_dim=N, latent_dim=8, n_time=T, rngs=nnx.Rngs(jax.random.PRNGKey(10)))
 
-key_init = jax.random.PRNGKey(10)
-prior_vars = prior.init(key_init, batch_train.target)
-
-optimizer = optax.adam(1e-3)
-opt_state = optimizer.init(prior_vars["params"])
+pre_optimizer = nnx.Optimizer(prior, optax.adam(1e-3), wrt=nnx.Param)
 
 pretrain_losses = []
 n_pretrain_epochs = 20
 
 
-def pretrain_loss_fn(params, x):
-    x_recon = prior.apply({"params": params}, x)
+def pretrain_loss_fn(prior, x):
+    x_recon = prior(x)
     return jnp.mean((x - x_recon) ** 2)
 
 
-grad_fn = jax.jit(jax.value_and_grad(pretrain_loss_fn))
-
 for epoch in range(n_pretrain_epochs):
-    loss_val, grads = grad_fn(prior_vars["params"], batch_train.target)
-    updates, opt_state = optimizer.update(grads, opt_state)
-    prior_vars = {"params": optax.apply_updates(prior_vars["params"], updates)}
+    loss_val, grads = nnx.value_and_grad(pretrain_loss_fn)(prior, batch_train.target)
+    pre_optimizer.update(prior, grads)
     pretrain_losses.append(float(loss_val))
 
 print(f"Pre-train final loss: {pretrain_losses[-1]:.6f}")
@@ -108,27 +103,21 @@ print(f"Pre-train final loss: {pretrain_losses[-1]:.6f}")
 
 # %%
 model_pretrained = FourDVarNet1D(
-    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10
+    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
-vars_pretrained = model_pretrained.init(jax.random.PRNGKey(1), batch_train)
 
-# Overwrite the prior sub-module (BilinAEPrior1D_0) with the pre-trained weights.
-# FourDVarNet1D stores the prior under the key "BilinAEPrior1D_0" inside params.
-vars_pretrained = {
-    "params": {
-        **vars_pretrained["params"],
-        "BilinAEPrior1D_0": prior_vars["params"],
-    }
-}
+# Copy pre-trained prior weights into the model's prior sub-module
+nnx.update(model_pretrained.prior, nnx.state(prior))
 
 # %% [markdown]
 # ## 4. Stage 2b — Train from scratch (no pre-training)
 
 # %%
 model_scratch = FourDVarNet1D(
-    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10
+    state_dim=N, n_time=T, latent_dim=8, hidden_dim=16, n_solver_steps=10,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
-vars_scratch = model_scratch.init(jax.random.PRNGKey(1), batch_train)
 
 # %% [markdown]
 # Train both models end-to-end for the same number of epochs.
@@ -136,22 +125,20 @@ vars_scratch = model_scratch.init(jax.random.PRNGKey(1), batch_train)
 # %%
 n_finetune_epochs = 10
 
-trained_pretrained, metrics_pretrained = fourdvarjax.fit(
+_, metrics_pretrained, _ = fourdvarjax.fit(
     model_pretrained,
-    vars_pretrained,
-    batch_train,
+    [batch_train],
     n_epochs=n_finetune_epochs,
     lr=1e-3,
-    key=jax.random.PRNGKey(2),
+    verbose=False,
 )
 
-trained_scratch, metrics_scratch = fourdvarjax.fit(
+_, metrics_scratch, _ = fourdvarjax.fit(
     model_scratch,
-    vars_scratch,
-    batch_train,
+    [batch_train],
     n_epochs=n_finetune_epochs,
     lr=1e-3,
-    key=jax.random.PRNGKey(2),
+    verbose=False,
 )
 
 # %% [markdown]
@@ -161,8 +148,8 @@ trained_scratch, metrics_scratch = fourdvarjax.fit(
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
 # Learning curves
-losses_pretrained = [m["loss"] for m in metrics_pretrained]
-losses_scratch = [m["loss"] for m in metrics_scratch]
+losses_pretrained = metrics_pretrained
+losses_scratch = metrics_scratch
 axes[0].plot(losses_pretrained, label="Pre-trained prior")
 axes[0].plot(losses_scratch, label="From scratch")
 axes[0].set_xlabel("Epoch")
@@ -171,8 +158,8 @@ axes[0].set_title("Learning curves")
 axes[0].legend()
 
 # Final test MSE
-out_pretrained = model_pretrained.apply(trained_pretrained, batch_test)
-out_scratch = model_scratch.apply(trained_scratch, batch_test)
+out_pretrained = model_pretrained(batch_test)
+out_scratch = model_scratch(batch_test)
 target = batch_test.target
 mse_pretrained = float(jnp.mean((out_pretrained - target) ** 2))
 mse_scratch = float(jnp.mean((out_scratch - target) ** 2))

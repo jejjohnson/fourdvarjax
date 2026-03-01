@@ -1,6 +1,6 @@
 """Tests for fourdvarjax._src.model."""
 
-import flax.nnx as nnx
+from flax import nnx
 import jax.numpy as jnp
 import pytest
 

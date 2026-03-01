@@ -19,6 +19,7 @@
 # Lorenz-63 dataset.
 
 # %%
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -50,17 +51,16 @@ val_batches = make_batches(jax.random.PRNGKey(99), n_batches=3)
 # %%
 model = FourDVarNet1D(
     state_dim=3,
-    obs_dim=3,
     n_time=20,
     latent_dim=8,
     hidden_dim=16,
     n_solver_steps=5,
+    rngs=nnx.Rngs(jax.random.PRNGKey(1)),
 )
 
-state, train_losses, val_losses = fit(
+optimizer, train_losses, val_losses = fit(
     model,
     train_batches,
-    rng=jax.random.PRNGKey(1),
     lr=1e-3,
     n_epochs=3,
     val_batches=val_batches,

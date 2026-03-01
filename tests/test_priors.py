@@ -1,7 +1,6 @@
 """Tests for fourdvarjax._src.priors."""
 
-import flax.nnx as nnx
-import jax
+from flax import nnx
 import jax.numpy as jnp
 
 from fourdvarjax import (
