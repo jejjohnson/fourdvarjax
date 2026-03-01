@@ -42,6 +42,18 @@ def compute_scaler_params(
 
     mean = float(np.mean(observed))
     std = float(np.std(observed))
+    if np.isnan(mean) or np.isnan(std):
+        msg = (
+            f"No observed values found in variable '{variable}' "
+            "(mask selects no elements)."
+        )
+        raise ValueError(msg)
+    if std == 0.0:
+        msg = (
+            f"Standard deviation of variable '{variable}' is zero "
+            "(constant data); cannot standardize."
+        )
+        raise ValueError(msg)
     return mean, std
 
 

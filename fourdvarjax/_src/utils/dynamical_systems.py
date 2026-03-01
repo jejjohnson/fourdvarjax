@@ -51,7 +51,7 @@ def simulate_lorenz63(
     n_steps: int = 5000,
     n_burn_in: int = 1000,
     x0: Float[Array, 3] | None = None,
-) -> tuple[Float[Array, T], Float[Array, "T 3"]]:
+) -> tuple[Float[Array, T], Float[Array, "T 3"]]:  # type: ignore[unresolved-reference]
     """Simulate the Lorenz-63 system and return state trajectory.
 
     Parameters
@@ -102,7 +102,7 @@ def simulate_lorenz63(
     save_times = jnp.linspace(t0, t1, total_steps + 1)
 
     sol = diffeqsolve(
-        ODETerm(model),
+        ODETerm(model),  # type: ignore[arg-type]
         Tsit5(),
         t0=t0,
         t1=t1,

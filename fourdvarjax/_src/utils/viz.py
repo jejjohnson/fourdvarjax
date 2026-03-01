@@ -47,12 +47,13 @@ def plot_3d_attractor(
         ax = fig.add_subplot(111, projection="3d")
     else:
         fig = ax.get_figure()
+        assert fig is not None
 
     ax.plot(states[:, i], states[:, j], states[:, k], lw=0.5)
     ax.set_xlabel(f"x{i}")
     ax.set_ylabel(f"x{j}")
     ax.set_zlabel(f"x{k}")
-    return fig, ax
+    return fig, ax  # type: ignore[return-value]
 
 
 def plot_state_grid(
@@ -82,16 +83,17 @@ def plot_state_grid(
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+        assert fig is not None
 
     ax.imshow(
         states.T,
         aspect="auto",
         origin="lower",
-        extent=[float(time[0]), float(time[-1]), 0, states.shape[1]],
+        extent=(float(time[0]), float(time[-1]), 0.0, float(states.shape[1])),
     )
     ax.set_xlabel("time")
     ax.set_ylabel("feature index")
-    return fig, ax
+    return fig, ax  # type: ignore[return-value]
 
 
 def plot_trajectories(
@@ -125,6 +127,7 @@ def plot_trajectories(
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+        assert fig is not None
 
     n_features = states.shape[1]
     for i in range(n_features):
@@ -138,7 +141,7 @@ def plot_trajectories(
             ax.set_ylabel("state")
 
     ax.legend()
-    return fig, ax
+    return fig, ax  # type: ignore[return-value]
 
 
 def plot_reconstruction_comparison(
@@ -147,7 +150,7 @@ def plot_reconstruction_comparison(
     reconstruction: np.ndarray,
     *,
     sample_idx: int = 0,
-) -> tuple[Figure, Axes]:
+) -> tuple[Figure, np.ndarray]:
     """Side-by-side comparison of target, masked input, and reconstruction.
 
     Parameters
