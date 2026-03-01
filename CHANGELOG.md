@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.2](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.1...v0.1.2) (2026-03-01)
+
+
+### Features
+
+* migrate 4dvarjax → fourdvarjax utils subpackage (L63 simulation, xarray pipeline, viz) ([93e43d7](https://github.com/jejjohnson/fourdvarjax/commit/93e43d7202220d7d295255e5eeed61badabbe63e))
+* migrate 4dvarjax functionality into fourdvarjax utils subpackage ([86d6597](https://github.com/jejjohnson/fourdvarjax/commit/86d65975dab4e7bb131231d7e40b4d527ce1cc2d))
+
+
+### Bug Fixes
+
+* resolve CI failures (ruff format + xarray import at test time) ([3489196](https://github.com/jejjohnson/fourdvarjax/commit/34891960fd24b0d04ce3bbb24b8f0e2a2aa03093))
+* resolve ty type-check failures and standardize.py NaN/ZeroDiv bug ([5cffd38](https://github.com/jejjohnson/fourdvarjax/commit/5cffd3834725a6b03d1b37451d0c0365b1d316e5))
+* suppress ty unresolved-attribute for set_zlabel on 3D axes ([80d5442](https://github.com/jejjohnson/fourdvarjax/commit/80d544226f50307a807a60749a3b5287775d9cb5))
+
 ## [0.1.1](https://github.com/jejjohnson/fourdvarjax/compare/v0.1.0...v0.1.1) (2026-03-01)
 
 
