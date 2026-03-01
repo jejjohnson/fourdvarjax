@@ -15,6 +15,7 @@ from fourdvarjax._src.utils.viz import (
 def _no_display(monkeypatch):
     """Use a non-interactive matplotlib backend for tests."""
     import matplotlib
+
     matplotlib.use("Agg")
 
 
@@ -30,6 +31,7 @@ def _dummy_time(T=50):
 class TestPlot3dAttractor:
     def test_returns_figure_and_axes(self):
         import matplotlib.figure
+
         states = _dummy_states()
         fig, _ax = plot_3d_attractor(states)
         assert isinstance(fig, matplotlib.figure.Figure)
@@ -43,6 +45,7 @@ class TestPlot3dAttractor:
 class TestPlotStateGrid:
     def test_returns_figure_and_axes(self):
         import matplotlib.figure
+
         states = _dummy_states()
         time = _dummy_time()
         fig, _ax = plot_state_grid(states, time)
@@ -53,6 +56,7 @@ class TestPlotTrajectories:
     @pytest.mark.parametrize("orientation", ["horizontal", "vertical"])
     def test_returns_figure(self, orientation):
         import matplotlib.figure
+
         states = _dummy_states()
         time = _dummy_time()
         fig, _ax = plot_trajectories(states, time, orientation=orientation)
@@ -60,6 +64,7 @@ class TestPlotTrajectories:
 
     def test_default_orientation(self):
         import matplotlib.figure
+
         states = _dummy_states()
         time = _dummy_time()
         fig, _ax = plot_trajectories(states, time)
@@ -69,6 +74,7 @@ class TestPlotTrajectories:
 class TestPlotReconstructionComparison:
     def test_returns_figure_and_axes(self):
         import matplotlib.figure
+
         rng = np.random.default_rng(0)
         B, T, N = 4, 20, 3
         target = rng.standard_normal((B, T, N)).astype(np.float32)

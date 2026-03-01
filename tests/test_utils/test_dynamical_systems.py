@@ -82,10 +82,6 @@ class TestSimulateLorenz63:
         """
         key = jax.random.PRNGKey(3)
         x0 = jax.random.normal(key, (3,)) * 0.01 + jnp.array([8.5, 8.5, 27.0])
-        _, s_no_burn = simulate_lorenz63(
-            key, n_steps=100, n_burn_in=0, x0=x0
-        )
-        _, s_burn = simulate_lorenz63(
-            key, n_steps=100, n_burn_in=200, x0=x0
-        )
+        _, s_no_burn = simulate_lorenz63(key, n_steps=100, n_burn_in=0, x0=x0)
+        _, s_burn = simulate_lorenz63(key, n_steps=100, n_burn_in=200, x0=x0)
         assert not jnp.allclose(s_no_burn[0], s_burn[0])

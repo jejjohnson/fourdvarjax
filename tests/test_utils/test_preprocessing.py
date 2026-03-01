@@ -48,9 +48,7 @@ class TestTrainTestSplit:
         ds = _make_full_ds()
         t1, _e1 = train_test_split(ds, n_train=20, n_test=8, seed=0)
         t2, _e2 = train_test_split(ds, n_train=20, n_test=8, seed=0)
-        np.testing.assert_array_equal(
-            t1["state"].values, t2["state"].values
-        )
+        np.testing.assert_array_equal(t1["state"].values, t2["state"].values)
 
 
 class TestXrToBatch1d:
@@ -61,7 +59,9 @@ class TestXrToBatch1d:
 
     def test_shapes(self):
         n_patches, n_timesteps, n_features = 10, 20, 3
-        ds = _make_full_ds(n_patches=n_patches, n_timesteps=n_timesteps, n_features=n_features)
+        ds = _make_full_ds(
+            n_patches=n_patches, n_timesteps=n_timesteps, n_features=n_features
+        )
         batch = xr_to_batch1d(ds)
         assert batch.input.shape == (n_patches, n_timesteps, n_features)
         assert batch.mask.shape == (n_patches, n_timesteps, n_features)

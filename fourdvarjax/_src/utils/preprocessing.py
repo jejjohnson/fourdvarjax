@@ -141,7 +141,9 @@ def interpolate_initial_condition(
             t_obs = t_all[mask_pf]
             y_obs = obs_pf[mask_pf]
             if len(t_obs) >= 2:
-                x_init[p, :, f] = np.interp(t_all, t_obs, y_obs, left=fillna, right=fillna)
+                x_init[p, :, f] = np.interp(
+                    t_all, t_obs, y_obs, left=fillna, right=fillna
+                )
             elif len(t_obs) == 1:
                 x_init[p, :, f] = y_obs[0]
 

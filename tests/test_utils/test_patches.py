@@ -33,7 +33,9 @@ class TestTrajectoryToXrDataset:
 
     def test_custom_feature_names(self):
         states, time_coords = _make_trajectory(n_time=10, n_features=3)
-        ds = trajectory_to_xr_dataset(states, time_coords, feature_names=["X", "Y", "Z"])
+        ds = trajectory_to_xr_dataset(
+            states, time_coords, feature_names=["X", "Y", "Z"]
+        )
         assert list(ds["state"].coords["feature"].values) == ["X", "Y", "Z"]
 
     def test_time_coords_preserved(self):
