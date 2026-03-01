@@ -132,9 +132,9 @@ class Lorenz96(eqx.Module):
     def __call__(
         self,
         t: float,
-        y: Float[Array, "N"],
+        y: Float[Array, N],
         args: None,
-    ) -> Float[Array, "N"]:
+    ) -> Float[Array, N]:
         """Evaluate the vector field at state ``y`` and time ``t``."""
         # Periodic shifts using jnp.roll
         y_km2 = jnp.roll(y, 2)   # x_{k-2}
@@ -151,7 +151,7 @@ def simulate_lorenz96(
     dt: float = 0.01,
     n_steps: int = 5000,
     n_burn_in: int = 1000,
-) -> tuple[Float[Array, "T"], Float[Array, "T N"]]:  # type: ignore[unresolved-reference]
+) -> tuple[Float[Array, T], Float[Array, "T N"]]:  # type: ignore[unresolved-reference]
     """Simulate the Lorenz-96 system and return state trajectory.
 
     Parameters
